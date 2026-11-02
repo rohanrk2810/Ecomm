@@ -87,3 +87,7 @@ form. Apply the latest Identity migration; see docs/mfa-login.md for scope and g
 After signing in, My account now links to authenticator setup. Add the key manually in
 your authenticator app, confirm its code, and save the recovery codes privately.
 See docs/mfa-login.md; staff roles and permissions are not enabled.
+
+For the requested local demo account, run scripts/dev/provision-demo-staff.ps1 after
+building the current Identity image. Read its ignored credential file; see
+[demo setup](docs/demo-staff.md). Staff access still requires your authenticator setup.

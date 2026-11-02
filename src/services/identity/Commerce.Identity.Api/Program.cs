@@ -85,6 +85,7 @@ builder.Services.AddScoped<VerificationIssuer>();
 builder.Services.AddScoped<PasswordRecovery>();
 builder.Services.AddScoped<MfaGate>();
 builder.Services.AddScoped<StaffAccessReader>();
+builder.Services.AddScoped<DemoStaffSeeder>();
 builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, CurrentStaffHandler>();
 builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationMiddlewareResultHandler, ApiAuthorizationResults>();
 builder.Services.AddOpenIddict().AddValidation(options => { options.UseLocalServer(); options.EnableTokenEntryValidation(); options.EnableAuthorizationEntryValidation(); options.UseAspNetCore(); options.AddAudiences("commerce"); });
@@ -122,6 +123,14 @@ builder.Services.AddOpenTelemetry().ConfigureResource(resource => resource.AddSe
         if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"])) metrics.AddOtlpExporter();
     });
 var app = builder.Build();
+if (args.Contains("--seed-demo-staff", StringComparer.Ordinal))
+{
+    using var scope = app.Services.CreateScope();
+    await scope.ServiceProvider.GetRequiredService<DemoStaffSeeder>().SeedAsync(
+        builder.Configuration.GetSection("DemoStaff").Get<DemoStaffSettings>() ?? new(), app.Environment.IsDevelopment(), CancellationToken.None);
+    Console.WriteLine("Demo staff fixture is available. Authenticator enrollment is required for staff access.");
+    return;
+}
 if (args.Contains("--provision-oidc", StringComparer.Ordinal))
 {
     using var scope = app.Services.CreateScope();

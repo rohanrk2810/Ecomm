@@ -195,3 +195,14 @@ Locked Docker builds, explicit migration and the SMTP/OIDC/MFA smoke passed; an 
 customer still received 403 and could not substitute a forged bearer on the staff route.
 No staff account or role list was seeded by this feature. Production staff administration
 and branch-owner validation remain separate work, documented in docs/staff-access-plan.md.
+
+## Requested local demo account
+
+45 backend tests passed (35 Identity, 10 gateway). Demo tests reject production/real-email
+provisioning, verify atomic audit/registration events, preserve enrolled factors and revoked
+grants on rerun, and reject mismatched credentials without resetting an existing account.
+The explicit development CLI was run against the local Identity container using a generated
+example.invalid account. Actual OIDC login passed and staff access remained 403 without MFA.
+The account was deliberately left unenrolled so its owner can add an authenticator privately.
+Credentials/configuration are in ignored .tools files; no password or factor was printed.
+No new package or migration was introduced by demo provisioning. See docs/demo-staff.md.
