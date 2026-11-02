@@ -37,6 +37,8 @@ Identity tests need the isolated local test database. Before the commands below,
 `./scripts/dev/provision-identity.ps1` and dot-source `./scripts/dev/identity-environment.ps1`.
 The storefront registration preview is at http://localhost:4200/register. Start Identity
 with `./scripts/dev/start-identity.ps1` in another terminal, following its migration setup.
+Local verification emails appear at http://localhost:8025. The resend page is
+http://localhost:4200/resend-verification; verification links require an explicit confirmation.
 
 ```powershell
 dotnet restore Commerce.slnx --locked-mode
@@ -47,6 +49,7 @@ dotnet list Commerce.slnx package --vulnerable --include-transitive
 ./scripts/test/smoke.ps1
 py scripts/test/infrastructure-smoke.py
 py scripts/test/identity-smoke.py
+py scripts/test/verification-smoke.py
 cd src/frontend
 npm ci
 npm run format:check

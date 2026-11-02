@@ -69,3 +69,7 @@ docker compose --env-file .env -f deploy/docker-compose.local.yml --profile app 
 
 Stop a previously running host gateway before binding the container to the same localhost:5080.
 The container is verified as non-root UID 1654. Its OTLP exporter targets the local collector.
+
+Email verification adds Mailpit on loopback ports 1025/8025 and a persistent app-owned
+Identity key volume. See docs/email-verification.md for capture, expiry, resend, restart
+testing and delivery recovery. These are local captures, not a configured production sender.

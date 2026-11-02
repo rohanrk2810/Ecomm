@@ -56,7 +56,7 @@ Kubernetes is unapplied, uses explicit review placeholders and provisional resou
 CI workflow is authored but has not run remotely. Full SAST/DAST/container/IaC scans, SBOM,
 signing, release deployment, backups/restores, load tests, UAT and production readiness remain future work.
 Gateway readiness covers gateway startup only. Identity registration readiness additionally
-checks database connectivity and applied migrations. Login, verification delivery, customer,
+checks database connectivity and applied migrations. Login, production verification delivery, customer,
 catalog, stock, order, payment, fulfilment, billing, notifications and reporting remain pending.
 
 ## Next dependencies
@@ -86,3 +86,23 @@ JSONB test query, deferred DI configuration/rate limits and test database resolu
 Registration creates an unconfirmed account only. No email, login/session, reset, OIDC,
 staff MFA, branch authorization or production readiness is claimed. Local registration smoke
 accounts and synthetic test records are intentionally retained. Remote CI has not run.
+
+## Phase 2 email verification — completed local checks
+- Backend commit b268a27 adds maintained Identity tokens, protected mail queue, single-use
+  expiring challenges, persistent resend cooldown, explicit EF migration and UserEmailVerified v1.
+- 23 backend tests passed (17 Identity + 6 gateway), including expiration, replay,
+  cross-account misuse, concurrent confirmation, resend cooldown and old-link invalidation.
+- 20 frontend tests passed (19 storefront + 1 operations). The five new tests cover secret
+  URL removal, explicit confirmation, duplicate-click protection, invalid links, safe retries
+  and neutral resend state. Both frontend production builds and formatting checks passed.
+- Locked Linux Identity/gateway builds and explicit migration passed. Mailpit capture verified
+  actual SMTP delivery. Container restart preserved keys/challenge state; confirmation succeeded
+  after restart, replay failed and an independent Kafka consumer saw the PII-free verified event.
+- NuGet audit reported no known vulnerabilities. Source secret scan passed. Browser inspection
+  showed the resend form. No real recipient email was sent; SMTP was captured locally.
+- Git author and committer were checked as the repository owner's configured identity;
+  no assistant co-author/attribution trailer is present. No remote push was performed.
+
+OIDC/BFF login/logout, password recovery, staff MFA/branch permissions and production
+sender/key approvals remain pending. SMTP retry/dead-letter state exists; operational alerting,
+retention/replay tooling and production key custody are still required before release.

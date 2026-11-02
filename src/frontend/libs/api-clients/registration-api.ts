@@ -15,6 +15,18 @@ export interface RegistrationResponse {
 }
 @Injectable({ providedIn: 'root' })
 export class RegistrationApi {
+  confirmEmail(userId: string, token: string) {
+    return this.http
+      .post<{
+        status: 'verified';
+      }>(`${this.base}/v1/identity/email-verifications`, { userId, token })
+      .pipe(timeout(15000));
+  }
+  resendVerification(email: string) {
+    return this.http
+      .post<RegistrationResponse>(`${this.base}/v1/identity/email-verification-requests`, { email })
+      .pipe(timeout(15000));
+  }
   private readonly http = inject(HttpClient);
   private readonly base = inject(RuntimeConfigService).current.publicApiBasePath;
   policy() {
