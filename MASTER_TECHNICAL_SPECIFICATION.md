@@ -1679,3 +1679,7 @@ See docs/customer-sessions.md; production security/operational approval remains 
 Local MFA verification now validates already-enrolled authenticator/recovery codes
 with durable replay protection. Enrollment, MFA session assurance and all staff
 permissions remain pending; see docs/mfa-login.md.
+
+Local authenticator enrollment now requires password reauthentication, expiring stamp-bound
+setup and first-code verification. Protected MFA material, one-time recovery display and
+session revocation are documented in docs/mfa-login.md. Staff access remains pending.

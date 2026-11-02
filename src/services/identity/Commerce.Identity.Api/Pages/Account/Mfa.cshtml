@@ -1,0 +1,20 @@
+@page "/account/mfa"
+@model Commerce.Identity.Api.Pages.Account.MfaModel
+@{ Layout=null; }
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Set up authenticator</title><link rel="stylesheet" href="/identity.css"></head>
+<body><main><h1>Set up your authenticator</h1>
+@if(Model.RecoveryCodes is not null){
+ <p role="status">MFA is enabled. Save these recovery codes securely now. Each works once; this page cannot show them again. Your old sessions have been closed.</p>
+ <ul>@foreach(var code in Model.RecoveryCodes){<li><code>@code</code></li>}</ul><p>Return to your storefront account and sign in again. Use a new authenticator code or one recovery code.</p>
+} else {
+ <p>Use a verified account without MFA. Enter your password for every step. Starting setup closes existing sessions. Setup expires after ten minutes. This does not grant staff permissions.</p>
+ @if(Model.Error is not null){<p role="alert">@Model.Error</p>}
+ @if(Model.Key is not null){<p>Add an account manually in your authenticator app. Choose a time-based code and enter this setup key:</p><code id="setup-key">@Model.Key</code><p>Keep this key private. Enter the first authenticator code below to enable MFA.</p>}
+ <form method="post">@Html.AntiForgeryToken()
+ <label for="email">Email address</label><input id="email" name="Email" type="email" autocomplete="username" value="@Model.Email" maxlength="254" required>
+ <label for="password">Current password</label><input id="password" name="Password" type="password" autocomplete="current-password" maxlength="128" required>
+ <label for="code">Authenticator code (confirmation only)</label><input id="code" name="Code" autocomplete="one-time-code" inputmode="numeric" maxlength="32">
+ <button type="submit" formaction="/account/mfa?handler=Begin">Start or resume setup</button>
+ <button type="submit" formaction="/account/mfa?handler=Confirm">Confirm and enable MFA</button>
+ </form>
+}</main></body></html>

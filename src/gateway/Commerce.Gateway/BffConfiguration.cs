@@ -88,6 +88,7 @@ public static class BffConfiguration
     }
     public static void MapBff(this WebApplication app)
     {
+        app.MapGet("/bff/mfa-setup", (Microsoft.Extensions.Options.IOptions<BffSettings> settings) => Results.Redirect(settings.Value.Authority.TrimEnd('/') + "/account/mfa")).RequireAuthorization();
         app.MapGet("/bff/login", (IOptions<BffSettings> settings) => settings.Value.Enabled
            ? Results.Challenge(new AuthenticationProperties { RedirectUri = settings.Value.PublicAppOrigin.TrimEnd('/') + "/account" }, ["oidc"]) : Results.StatusCode(503)).AllowAnonymous();
         app.MapGet("/bff/session", (HttpContext context, IOptions<BffSettings> settings) => Results.Ok(new

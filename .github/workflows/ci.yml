@@ -91,6 +91,7 @@ jobs:
           python scripts/test/verification-smoke.py
           python scripts/test/oidc-smoke.py
           python scripts/test/password-reset-smoke.py
+          python scripts/test/mfa-enrollment-smoke.py
       - name: Stop local dependencies
         if: always()
         run: docker compose --env-file .env -f deploy/docker-compose.local.yml --profile identity --profile app down

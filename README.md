@@ -83,3 +83,7 @@ Apply the Identity migration and see docs/customer-sessions.md for lifecycle det
 
 Already-enrolled accounts can use authenticator/recovery codes on the Identity login
 form. Apply the latest Identity migration; see docs/mfa-login.md for scope and gaps.
+
+After signing in, My account now links to authenticator setup. Add the key manually in
+your authenticator app, confirm its code, and save the recovery codes privately.
+See docs/mfa-login.md; staff roles and permissions are not enabled.

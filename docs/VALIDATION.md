@@ -158,3 +158,19 @@ authorization remain separate required work. See docs/mfa-login.md for the preci
 MFA slice: locked Docker build and explicit migration passed. Existing native SMTP/OIDC
 login, restart persistence, CSRF logout and forged-callback smoke passed after deployment.
 Backend formatting verification, NuGet audit and staged source secret scan passed.
+
+## Authenticator enrollment ? local checks
+
+- 39 backend tests passed (31 Identity integration, 8 gateway). The new enrollment test
+  checks CSRF, password reauthentication, inactive MFA before confirmation, protected
+  authenticator/recovery values in PostgreSQL, invalid first code, activation, one-time
+  recovery display, enrollment-code replay denial and single-use recovery redemption.
+- 24 frontend tests passed and both frontend production builds passed. Browser inspection
+  showed the Identity setup form with labeled password/code inputs and explicit actions.
+- Locked Docker builds and explicit AddMfaEnrollment migration passed. A synthetic account
+  completed real SMTP verification and OIDC login, enrolled its authenticator through the
+  provider form, lost its old BFF session, received recovery codes only on confirmation,
+  failed password-only login and completed OIDC again using a recovery code.
+- No production staff account was created or granted privileges. No real key or recovery
+  code was printed by smoke tests. Production factor reset, key custody, staff permissions
+  and authoritative MFA assurance remain separate work.
