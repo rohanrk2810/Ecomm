@@ -4,4 +4,12 @@
     <Project Path="src/gateway/Commerce.Gateway.Tests/Commerce.Gateway.Tests.csproj" />
     <Project Path="src/gateway/Commerce.Gateway/Commerce.Gateway.csproj" />
   </Folder>
+  <Folder Name="/src/services/" />
+  <Folder Name="/src/services/identity/">
+    <Project Path="src/services/identity/Commerce.Identity.Api/Commerce.Identity.Api.csproj" />
+    <Project Path="src/services/identity/Commerce.Identity.Application/Commerce.Identity.Application.csproj" />
+    <Project Path="src/services/identity/Commerce.Identity.Contracts/Commerce.Identity.Contracts.csproj" />
+    <Project Path="src/services/identity/Commerce.Identity.Infrastructure/Commerce.Identity.Infrastructure.csproj" />
+    <Project Path="src/services/identity/Commerce.Identity.IntegrationTests/Commerce.Identity.IntegrationTests.csproj" />
+  </Folder>
 </Solution>

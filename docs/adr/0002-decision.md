@@ -13,11 +13,17 @@ Proposed implementation: dedicated ASP.NET Core Identity + OpenIddict server usi
 its own PostgreSQL database; gateway BFF uses authorization code + PKCE and HttpOnly
 cookies. Staff MFA is required before staff access is enabled. No hand-written JWT issuer.
 
+Development progress: under the user's instruction to continue, the first slice now uses
+ASP.NET Core Identity for unconfirmed account registration and password hashing. It issues
+no token/session. OpenIddict authorization-code/PKCE, BFF, email confirmation/reset, staff
+MFA and production provider approval remain subsequent work.
+
 ## Alternatives
 Evaluate client-approved managed offerings and self-hosting against cost, security and operating capacity.
 
 ## Consequences
-Only reversible foundation work may proceed. Do not assume this proposal is approved.
+Reversible local registration implementation is in progress. This does not imply approval
+of a production identity provider, consent policy or deployment.
 
 ## Security and operations impact
 Owner must document credentials, isolation, failure modes, monitoring and recovery before approval.

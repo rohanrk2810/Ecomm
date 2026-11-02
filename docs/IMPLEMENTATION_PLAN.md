@@ -19,3 +19,11 @@ Verify newly started engine, import pinned images through a scoped IPv4 fallback
 pulls fail, run dependency operations using disposable synthetic records, test gateway container
 and telemetry, and update validation evidence. Record user-selected customer email/password
 sign-in with mobile OTP deferred. Identity provider implementation remains a separate slice.
+
+## Phase 2 slice 1 — customer registration
+User requested continued implementation and a Git commit per completed task.
+Commit foundation, then Identity registration with isolated PostgreSQL role/migrations,
+runtime password policy, generic duplicate responses, quota, transactional PII-free outbox
+and acknowledged Kafka publishing. Verify rollback, concurrency, extra-field rejection and
+safe failure states. Separately commit the lazy Angular registration form with typed client,
+server policy hints and pending/error states. Login and activation remain subsequent slices.

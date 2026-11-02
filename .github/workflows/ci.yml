@@ -17,7 +17,7 @@ jobs:
       - run: dotnet restore Commerce.slnx --locked-mode
       - run: dotnet format Commerce.slnx --verify-no-changes --no-restore
       - run: dotnet build Commerce.slnx --no-restore -c Release
-      - run: dotnet test Commerce.slnx --no-restore -c Release
+      - run: dotnet test src/gateway/Commerce.Gateway.Tests --no-restore -c Release
       - name: Audit dependencies
         shell: pwsh
         run: ./scripts/test/audit-backend.ps1
@@ -59,6 +59,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
@@ -67,6 +70,15 @@ jobs:
         run: ./scripts/dev/bootstrap.ps1 -DependenciesOnly
       - name: Exercise actual dependency operations
         run: python scripts/test/infrastructure-smoke.py
+      - name: Test Identity registration against isolated PostgreSQL
+        shell: pwsh
+        run: |
+          ./scripts/dev/provision-identity.ps1
+          . ./scripts/dev/identity-environment.ps1
+          dotnet restore Commerce.slnx --locked-mode
+          if ($LASTEXITCODE -ne 0) { throw 'Restore failed' }
+          dotnet test src/services/identity/Commerce.Identity.IntegrationTests -c Release --no-restore
+          if ($LASTEXITCODE -ne 0) { throw 'Identity tests failed' }
       - name: Stop local dependencies
         if: always()
         run: docker compose --env-file .env -f deploy/docker-compose.local.yml down

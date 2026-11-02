@@ -72,10 +72,26 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       AllowedHosts: localhost;127.0.0.1
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      ReverseProxy__Clusters__identity__Destinations__one__Address: http://identity:8080
     ports: ["127.0.0.1:5080:8080"]
     depends_on:
       otel-collector:
         condition: service_started
+  identity:
+    profiles: ["identity"]
+    build:
+      context: ..
+      dockerfile: src/services/identity/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Identity: Host=postgres;Database=commerce_identity;Username=commerce_identity;Password=${IDENTITY_DATABASE_PASSWORD:-};Include Error Detail=false;GSS Encryption Mode=Disable
+      Messaging__BootstrapServers: kafka:9092
+      Messaging__RegistrationTopic: commerce.identity.users.v1
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports: ["127.0.0.1:5082:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
 volumes:
   postgres-data:
   kafka-data:

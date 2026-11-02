@@ -1,0 +1,50 @@
+openapi: 3.0.3
+info:
+  title: Identity registration
+  version: 1.0.0
+paths:
+  /api/v1/identity/registrations:
+    post:
+      operationId: RegisterCustomer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [email, password]
+              properties:
+                email: { type: string, format: email, maxLength: 254 }
+                password: { type: string, format: password, maxLength: 128, writeOnly: true }
+      responses:
+        '202':
+          description: Same pending state for a new or existing eligible registration; no token issued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, enum: [pending_verification] }
+        '400': { description: Invalid body/email/password or unexpected JSON members; safe ProblemDetails }
+        '429': { description: Registration quota exceeded }
+        '500': { description: Persistence failure; no success implied }
+  /api/v1/identity/registration-policy:
+    get:
+      operationId: GetRegistrationPolicy
+      responses:
+        '200':
+          description: Validated runtime password policy for browser hints; server validation remains authoritative
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [minimumPasswordLength, maximumPasswordLength, requireDigit, requireUppercase, requireLowercase, requireNonAlphanumeric]
+                properties:
+                  minimumPasswordLength: { type: integer, minimum: 12 }
+                  maximumPasswordLength: { type: integer, maximum: 128 }
+                  requireDigit: { type: boolean }
+                  requireUppercase: { type: boolean }
+                  requireLowercase: { type: boolean }
+                  requireNonAlphanumeric: { type: boolean }

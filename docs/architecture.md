@@ -20,7 +20,9 @@ owns its database, credentials, contracts and migrations. Cross-service SQL is p
 | Notification | Templates and delivery attempts |
 | Reporting | Derived reporting projection |
 
-Only gateway and Angular shells exist in this phase. No empty business services created.
+Gateway, Angular shells and the first Identity registration slice exist. Identity owns
+commerce_identity and the isolated synthetic commerce_identity_tests database. Login/session
+and customer profile services are pending. No empty business services have been created.
 
 ## Initial glossary and workflows
 Branch: physical store and authorization scope. SKU: stock keeping unit.

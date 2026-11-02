@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:commerce:identity:UserRegistered:1",
+  "title": "UserRegistered v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["eventId", "type", "version", "occurredAtUtc", "producer", "aggregateId", "aggregateVersion", "correlationId", "causationId", "traceParent", "data"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "type": { "const": "UserRegistered" },
+    "version": { "const": 1 },
+    "occurredAtUtc": { "type": "string", "format": "date-time" },
+    "producer": { "const": "commerce.identity" },
+    "aggregateId": { "type": "string", "format": "uuid" },
+    "aggregateVersion": { "const": 1 },
+    "correlationId": { "type": "string", "minLength": 1 },
+    "causationId": { "type": "string", "minLength": 1 },
+    "traceParent": { "type": ["string", "null"] },
+    "data": {
+      "type": "object", "additionalProperties": false, "required": ["userId"],
+      "properties": { "userId": { "type": "string", "format": "uuid" } }
+    }
+  }
+}

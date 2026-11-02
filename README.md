@@ -1,6 +1,7 @@
 # Supermarket Commerce Platform
 Standalone platform based on SCP-ARCH-001. Current scope: discovery preparation and
-Phase 1 foundation. Commerce, login, inventory and payment are not implemented.
+Phase 1 foundation plus the first Phase 2 Identity registration slice. Shopping, login,
+email verification/delivery, inventory and payment are not implemented.
 Client discovery/ADR sign-off remains pending. Original documentation is preserved in
 the sibling supermarket-commerce-docs folder; normative spec and AGENTS.md are copied here.
 
@@ -53,7 +54,9 @@ docs/architecture.md, docs/adr and docs/runbooks/local-development.md.
 Gateway OpenAPI is available only in Development at /openapi/v1.json.
 Package versions and lockfiles are pinned. Image tags are pinned; digest promotion,
 SBOM/signing, registry publishing and complete production security gates remain future work.
-No production readiness claim. No EF migrations are needed until a service owns business data.
+No production readiness claim. Identity now owns its database and initial EF migration.
+Registration creates an unconfirmed account and a transactional UserRegistered event; it
+does not issue a session or send email. See [Identity setup](docs/identity-registration.md).
 
 Local Docker dependencies have now passed transactional database, Redis, Kafka,
 authenticated object storage and OTLP smoke checks. PostgreSQL uses localhost:15432
