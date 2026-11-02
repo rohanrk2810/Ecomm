@@ -19,12 +19,21 @@ public sealed class IdentityDatabase(DbContextOptions<IdentityDatabase> options)
 {
     public DbSet<OutboxMessage> Outbox => Set<OutboxMessage>();
     public DbSet<EmailChallenge> EmailChallenges => Set<EmailChallenge>();
+    public DbSet<CustomerSession> CustomerSessions => Set<CustomerSession>();
+    public DbSet<AuthenticationAudit> AuthenticationAudits => Set<AuthenticationAudit>();
     public DbSet<VerificationEmail> VerificationEmails => Set<VerificationEmail>();
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
         builder.HasDefaultSchema("identity");
         builder.Entity<Account>().HasIndex(x => x.NormalizedEmail).IsUnique();
+        builder.Entity<CustomerSession>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.UserId, x.ExpiresAtUtc });
+        });
+        builder.Entity<AuthenticationAudit>().HasKey(x => x.Id);
         builder.Entity<EmailChallenge>(entity =>
         {
             entity.HasKey(x => x.UserId);
@@ -52,6 +61,6 @@ public sealed class IdentityDatabaseFactory : IDesignTimeDbContextFactory<Identi
     {
         var connection = Environment.GetEnvironmentVariable("ConnectionStrings__Identity")
             ?? throw new InvalidOperationException("Inject ConnectionStrings__Identity for migration commands.");
-        return new IdentityDatabase(new DbContextOptionsBuilder<IdentityDatabase>().UseNpgsql(connection).Options);
+        return new IdentityDatabase(new DbContextOptionsBuilder<IdentityDatabase>().UseNpgsql(connection).UseOpenIddict().Options);
     }
 }

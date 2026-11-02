@@ -1664,3 +1664,10 @@ Do not expose SQL, exception type, internal hostnames, secret names, stack trace
 
 **End of specification.**  
 **Production status note:** This document is a build specification. Production readiness can be claimed only after implementation, verification, client UAT, security review, operational readiness and sign-off are completed.
+
+### Local implementation note ? 02 November 2026
+Customer email/password OIDC sessions now use OpenIddict code flow with mandatory S256
+PKCE and gateway BFF protected Redis tickets. Identity owns durable session revocation
+and audits. Exact first-party callbacks, confirmed email, CSRF and token introspection
+are enforced. No refresh tokens or staff authorization are enabled. See
+docs/customer-sessions.md and ADR-0002; production approval remains pending.

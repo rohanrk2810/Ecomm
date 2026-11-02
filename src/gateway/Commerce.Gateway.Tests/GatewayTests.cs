@@ -58,6 +58,27 @@ public sealed class GatewayTests : IClassFixture<WebApplicationFactory<Program>>
     private static CancellationToken TestContextToken => CancellationToken.None;
 
     [Fact]
+    public async Task DisabledBffDoesNotExposeTokensOrClaimAnActiveSession()
+    {
+        using var response = await client.GetAsync("/bff/session", TestContextToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var session = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>(TestContextToken);
+        Assert.False(session.GetProperty("available").GetBoolean());
+        Assert.False(session.GetProperty("authenticated").GetBoolean());
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, session.GetProperty("userId").ValueKind);
+        Assert.False(session.TryGetProperty("access_token", out _));
+        Assert.True(response.Headers.CacheControl?.NoStore);
+    }
+
+    [Fact]
+    public async Task DisabledBffCannotStartLogin()
+    {
+        using var response = await client.GetAsync("/bff/login", TestContextToken);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Null(response.Headers.Location);
+    }
+
+    [Fact]
     public async Task UnconfiguredIdentityDeniesProxyRoutesBeforeCallingUpstream()
     {
         await using var factory = new WebApplicationFactory<Program>()

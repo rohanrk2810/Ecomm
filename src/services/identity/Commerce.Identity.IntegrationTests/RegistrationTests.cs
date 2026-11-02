@@ -17,18 +17,37 @@ namespace Commerce.Identity.IntegrationTests;
 
 public sealed class IdentityFixture : WebApplicationFactory<Program>, IAsyncLifetime
 {
+    private readonly string keyRoot = Path.Combine(Path.GetTempPath(), "commerce-identity-tests-" + Guid.NewGuid().ToString("N"));
+    public string ClientId { get; } = "test-bff-" + Guid.NewGuid().ToString("N");
+    public string ClientSecret { get; } = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
     protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
     {
         var connection = Environment.GetEnvironmentVariable("IdentityTestConnection")
             ?? throw new InvalidOperationException("Inject IdentityTestConnection for real PostgreSQL integration tests.");
         if (new NpgsqlConnectionStringBuilder(connection).Database != "commerce_identity_tests")
             throw new InvalidOperationException("Only the dedicated synthetic test database is allowed.");
+        var oidc = new OidcSettings
+        {
+            ClientId = ClientId,
+            ClientSecret = ClientSecret,
+            CertificatePassword = ClientSecret,
+            SigningCertificatePath = Path.Combine(keyRoot, "signing.pfx"),
+            EncryptionCertificatePath = Path.Combine(keyRoot, "encryption.pfx")
+        };
+        DevelopmentOidcCertificates.Create(oidc);
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["ConnectionStrings:Identity"] = connection,
             ["Messaging:PublisherEnabled"] = "false",
             ["VerificationDelivery:Enabled"] = "false",
-            ["Verification:KeyDirectory"] = Path.Combine(Path.GetTempPath(), "commerce-identity-tests-" + Guid.NewGuid().ToString("N")),
+            ["Verification:KeyDirectory"] = keyRoot,
+            ["Oidc:Issuer"] = "http://localhost/",
+            ["Oidc:PublicAppOrigin"] = "http://localhost:4200",
+            ["Oidc:ClientId"] = ClientId,
+            ["Oidc:ClientSecret"] = ClientSecret,
+            ["Oidc:CertificatePassword"] = ClientSecret,
+            ["Oidc:SigningCertificatePath"] = oidc.SigningCertificatePath,
+            ["Oidc:EncryptionCertificatePath"] = oidc.EncryptionCertificatePath,
             ["Registration:RequestsPerMinute"] = "1000"
         }));
     }
@@ -39,6 +58,7 @@ public sealed class IdentityFixture : WebApplicationFactory<Program>, IAsyncLife
         if (db.Database.GetDbConnection().Database != "commerce_identity_tests")
             throw new InvalidOperationException("Resolved database must be the isolated synthetic test database.");
         await db.Database.MigrateAsync();
+        await Commerce.Identity.Api.OidcConfiguration.ProvisionClientAsync(scope.ServiceProvider, CancellationToken.None);
     }
     Task IAsyncLifetime.DisposeAsync() => Task.CompletedTask;
 }

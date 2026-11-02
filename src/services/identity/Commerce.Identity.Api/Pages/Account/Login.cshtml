@@ -1,0 +1,13 @@
+@page "/account/login"
+@model Commerce.Identity.Api.Pages.Account.LoginModel
+@{ Layout=null; }
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in</title><link rel="stylesheet" href="/identity.css"></head>
+<body><main><p class="eyebrow">Welcome back</p><h1>Sign in to your account.</h1>
+@if(Model.Error is not null){<p role="alert">@Model.Error</p>}
+<form method="post">
+ @Html.AntiForgeryToken()
+ <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl">
+ <label for="email">Email address</label><input id="email" name="Email" type="email" autocomplete="username" maxlength="254" required value="@Model.Email">
+ <label for="password">Password</label><input id="password" name="Password" type="password" autocomplete="current-password" maxlength="128" required>
+ <button type="submit">Sign in</button>
+</form><p>Your email address must be verified before you can sign in.</p></main></body></html>

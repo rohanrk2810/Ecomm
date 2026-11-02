@@ -5,7 +5,7 @@ Status: Proposed / pending approval
 Baseline SCP-ARCH-001 requires this decision before the dependent feature or production deployment.
 
 ## Decision
-Pending provider choice. Prefer OIDC with BFF HttpOnly cookies and CSRF protection. No login or JWT issuance implemented.
+Production provider choice remains pending. Local development uses OIDC with BFF HttpOnly cookies and CSRF protection.
 
 User confirmed customer email/password sign-in and deferred mobile OTP in chat on
 02 November 2026. This confirms the credential method, not a provider or consent policy.
@@ -13,13 +13,12 @@ Proposed implementation: dedicated ASP.NET Core Identity + OpenIddict server usi
 its own PostgreSQL database; gateway BFF uses authorization code + PKCE and HttpOnly
 cookies. Staff MFA is required before staff access is enabled. No hand-written JWT issuer.
 
-Development progress: under the user's instruction to continue, the first slice now uses
-ASP.NET Core Identity for unconfirmed account registration and password hashing. It issues
-no token/session. OpenIddict authorization-code/PKCE, BFF, email confirmation/reset, staff
-MFA and production provider approval remain subsequent work.
-
-Email confirmation/resend is now implemented under ADR-0016. It still issues no session;
-OIDC/BFF login, recovery, staff MFA and production provider approval remain pending.
+Development implementation now includes registration, email verification (ADR-0016),
+OpenIddict authorization code with S256 PKCE and a gateway BFF backed by protected
+Redis tickets. Exact first-party callbacks use implicit consent. No refresh tokens,
+third-party clients or staff access are enabled. MFA-enabled accounts fail closed.
+The user authorized continued implementation; production provider/consent approval
+remains pending. See [session behavior and setup](../customer-sessions.md).
 
 ## Alternatives
 Evaluate client-approved managed offerings and self-hosting against cost, security and operating capacity.

@@ -106,3 +106,27 @@ accounts and synthetic test records are intentionally retained. Remote CI has no
 OIDC/BFF login/logout, password recovery, staff MFA/branch permissions and production
 sender/key approvals remain pending. SMTP retry/dead-letter state exists; operational alerting,
 retention/replay tooling and production key custody are still required before release.
+
+## Phase 2 customer sessions — completed local checks
+
+- Release solution build: zero warnings/errors. Backend formatting verification passed.
+- 34 backend tests passed: 26 Identity integration and 8 gateway tests. New coverage
+  includes real code/S256 exchange, code replay, wrong/missing PKCE, unverified accounts,
+  incorrect passwords, CSRF, exact redirect registration, durable session revocation,
+  MFA bypass denial and disabled-BFF behavior. Invalid authorization requests use the
+  provider's protocol response format; tests enforce rejection rather than assuming JSON.
+- 23 frontend tests passed (22 storefront, 1 operations); both production builds and
+  Prettier verification passed. Account tests cover loading/anonymous state, a native
+  CSRF-protected logout form and dependency failure. Browser inspection showed the
+  account screen and sign-in/registration/verification links.
+- Locked Docker builds passed. Real Mailpit SMTP verification followed by public-browser
+  OIDC S256 login succeeded through Angular's proxy. Identity/gateway container restart
+  preserved the session through persistent certificates, protection keys and Redis.
+  Missing logout CSRF was rejected, provider logout confirmation completed, old BFF
+  cookie replay remained anonymous and a forged login callback returned 400.
+- NuGet and npm audits reported no known vulnerabilities. Staged source secret scan
+  and whitespace checks passed. Only maintained server-side OIDC packages are installed;
+  no vulnerable-package warning was suppressed.
+
+Password recovery, staff MFA/permissions, production provider/consent approval, deployment
+security, key rotation, session/audit retention and operational sign-off remain pending.

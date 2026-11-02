@@ -73,7 +73,16 @@ services:
       AllowedHosts: localhost;127.0.0.1
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       ReverseProxy__Clusters__identity__Destinations__one__Address: http://identity:8080
+      Bff__Enabled: 'true'
+      Bff__Authority: http://localhost:5082/
+      Bff__InternalAuthority: http://identity:8080/
+      Bff__PublicAppOrigin: ${PUBLIC_APP_ORIGIN:-http://localhost:4200}
+      Bff__ClientId: commerce-storefront
+      Bff__ClientSecret: ${OIDC_CLIENT_SECRET:-}
+      Bff__RedisConnectionString: redis:6379,abortConnect=false
+      Bff__KeyDirectory: /var/commerce/keys
     ports: ["127.0.0.1:5080:8080"]
+    volumes: ["gateway-keys:/var/commerce/keys"]
     depends_on:
       otel-collector:
         condition: service_started
@@ -91,6 +100,13 @@ services:
       Verification__KeyDirectory: /var/commerce/keys
       VerificationDelivery__Enabled: 'true'
       VerificationDelivery__Host: mailpit
+      Oidc__Issuer: http://localhost:5082/
+      Oidc__PublicAppOrigin: ${PUBLIC_APP_ORIGIN:-http://localhost:4200}
+      Oidc__ClientId: commerce-storefront
+      Oidc__ClientSecret: ${OIDC_CLIENT_SECRET:-}
+      Oidc__CertificatePassword: ${OIDC_CERTIFICATE_PASSWORD:-}
+      Oidc__SigningCertificatePath: /var/commerce/keys/oidc-signing.pfx
+      Oidc__EncryptionCertificatePath: /var/commerce/keys/oidc-encryption.pfx
     ports: ["127.0.0.1:5082:8080"]
     volumes: ["identity-keys:/var/commerce/keys"]
     depends_on:
@@ -101,6 +117,7 @@ services:
     image: axllent/mailpit:v1.33.0
     ports: ["127.0.0.1:1025:1025", "127.0.0.1:8025:8025"]
 volumes:
+  gateway-keys:
   identity-keys:
   postgres-data:
   kafka-data:

@@ -9,6 +9,14 @@ if (-not ([IO.File]::ReadAllText($localEnv) -match '(?m)^IDENTITY_DATABASE_PASSW
     try { $generator.GetBytes($randomBytes) } finally { $generator.Dispose() }
     [IO.File]::AppendAllText($localEnv, "IDENTITY_DATABASE_PASSWORD=$([Convert]::ToBase64String($randomBytes))`n")
 }
+foreach($secretName in @('OIDC_CLIENT_SECRET','OIDC_CERTIFICATE_PASSWORD')) {
+    if(-not ([IO.File]::ReadAllText($localEnv) -match "(?m)^$secretName=")) {
+        $secretBytes=New-Object byte[] 32
+        $rng=[Security.Cryptography.RandomNumberGenerator]::Create()
+        try{$rng.GetBytes($secretBytes)}finally{$rng.Dispose()}
+        [IO.File]::AppendAllText($localEnv,"$secretName=$([Convert]::ToBase64String($secretBytes))`n")
+    }
+}
 . (Join-Path $PSScriptRoot 'identity-environment.ps1')
 # psql quote-literal formatting prevents SQL injection; no credentials are written to SQL files/logs.
 $provisionSql = @'

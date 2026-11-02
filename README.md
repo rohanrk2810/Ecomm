@@ -15,7 +15,7 @@ From repository root:
 ```powershell
 . ./scripts/dev/use-local-tools.ps1
 ./scripts/dev/bootstrap.ps1
-dotnet run --project src/gateway/Commerce.Gateway
+./scripts/dev/start-gateway.ps1
 ```
 In a second terminal:
 ```powershell
@@ -29,7 +29,7 @@ Operations shell has no privileged features and does not simulate authentication
 
 ## Linux/macOS
 Install pinned tools and PowerShell 7. Run `pwsh -File scripts/dev/bootstrap.ps1`.
-Then `dotnet run --project src/gateway/Commerce.Gateway` and, in src/frontend,
+Then `./scripts/dev/start-gateway.ps1` and, in src/frontend,
 `npm run start:storefront` or `npm run start:operations` in separate terminals.
 
 ## Checks
@@ -73,3 +73,7 @@ authenticated object storage and OTLP smoke checks. PostgreSQL uses localhost:15
 (override POSTGRES_PORT); its internal container port remains 5432. See the runbook
 for the verified IPv4 image-import workaround if Docker Desktop registry downloads fail.
 Infrastructure smoke checks require Python 3.11+ (`python` on Linux/macOS, `py` on Windows).
+
+Customer OIDC sign-in/logout and the My account page are now available locally.
+Follow [session setup](docs/customer-sessions.md) for explicit certificate preparation,
+migration and BFF client registration before starting Identity/gateway.

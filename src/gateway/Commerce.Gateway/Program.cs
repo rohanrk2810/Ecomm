@@ -16,11 +16,8 @@ builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks().AddCheck("gateway", () => HealthCheckResult.Healthy(), tags: ["ready"]);
 builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 
-// Until the identity ADR is approved, proxy routes fail closed. Public routes
-// must be explicitly reviewed and opt out with AuthorizationPolicy=anonymous.
-builder.Services.AddAuthentication("Foundation")
-    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions,
-        FoundationAuthenticationHandler>("Foundation", _ => { });
+// Proxy routes require a validated BFF session unless explicitly marked anonymous.
+builder.AddBff();
 builder.Services.AddAuthorization(options => options.FallbackPolicy =
     new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser().Build());
@@ -28,7 +25,10 @@ builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService("commerce.gateway"))
     .WithTracing(tracing =>
     {
-        tracing.AddAspNetCoreInstrumentation().AddHttpClientInstrumentation();
+        tracing.AddAspNetCoreInstrumentation(options => options.Filter = context =>
+            !context.Request.Path.StartsWithSegments("/bff") && context.Request.Path != "/signin-oidc" && context.Request.Path != "/signout-callback-oidc")
+            .AddHttpClientInstrumentation(options => options.FilterHttpRequestMessage = request =>
+                request.RequestUri is not null && !request.RequestUri.AbsolutePath.StartsWith("/connect/", StringComparison.Ordinal));
         if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
         {
             tracing.AddOtlpExporter();
@@ -57,6 +57,8 @@ app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.Use(async (context, next) =>
 {
+    if (context.Request.Path.StartsWithSegments("/bff") || context.Request.Path == "/signin-oidc" || context.Request.Path == "/signout-callback-oidc")
+        context.Response.Headers.CacheControl = "no-store";
     context.Response.Headers.XContentTypeOptions = "nosniff";
     context.Response.Headers["Referrer-Policy"] = "no-referrer";
     context.Response.Headers.ContentSecurityPolicy = "default-src 'none'; frame-ancestors 'none'";
@@ -64,6 +66,7 @@ app.Use(async (context, next) =>
 });
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapBff();
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {

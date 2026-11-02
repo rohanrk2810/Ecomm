@@ -73,3 +73,7 @@ The container is verified as non-root UID 1654. Its OTLP exporter targets the lo
 Email verification adds Mailpit on loopback ports 1025/8025 and a persistent app-owned
 Identity key volume. See docs/email-verification.md for capture, expiry, resend, restart
 testing and delivery recovery. These are local captures, not a configured production sender.
+
+Customer login requires explicit OIDC certificate preparation and client registration.
+See [customer sessions](../customer-sessions.md); use start-gateway.ps1 for host BFF
+configuration. Redis and Identity must be available for authenticated requests.

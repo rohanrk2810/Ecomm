@@ -1,6 +1,7 @@
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using Commerce.Identity.Api;
 using Commerce.Identity.Application;
 using Commerce.Identity.Contracts;
 using Commerce.Identity.Infrastructure;
@@ -12,9 +13,18 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
+if (args.Contains("--prepare-oidc", StringComparer.Ordinal))
+{
+    if (!builder.Environment.IsDevelopment()) throw new InvalidOperationException("Certificate generation is development-only.");
+    DevelopmentOidcCertificates.Create(builder.Configuration.GetSection("Oidc").Get<OidcSettings>()
+        ?? throw new InvalidOperationException("Inject local OIDC configuration."));
+    return;
+}
+builder.AddCustomerOidc();
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
 builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.None);
+builder.Logging.AddFilter("OpenIddict", LogLevel.Warning);
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
     context.ProblemDetails.Extensions["correlationId"] = context.HttpContext.TraceIdentifier);
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow);
@@ -54,8 +64,8 @@ builder.Services.AddOptions<MessagingSettings>().BindConfiguration("Messaging")
     .Validate(x => x.PollIntervalMilliseconds >= 100, "Polling interval too short").ValidateOnStart();
 builder.Services.AddDbContext<IdentityDatabase>((services, options) => options.UseNpgsql(
     services.GetRequiredService<IConfiguration>().GetConnectionString("Identity")
-        ?? throw new InvalidOperationException("Inject the Identity service database connection.")));
-builder.Services.AddIdentityCore<Account>().AddEntityFrameworkStores<IdentityDatabase>().AddDefaultTokenProviders();
+        ?? throw new InvalidOperationException("Inject the Identity service database connection.")).UseOpenIddict());
+builder.Services.AddIdentityCore<Account>().AddEntityFrameworkStores<IdentityDatabase>().AddDefaultTokenProviders().AddSignInManager();
 builder.Services.AddOptions<IdentityOptions>().Configure<Microsoft.Extensions.Options.IOptions<RegistrationSettings>>((options, registration) =>
 {
     var security = registration.Value;
@@ -91,7 +101,8 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddOpenTelemetry().ConfigureResource(resource => resource.AddService("commerce.identity"))
     .WithTracing(tracing =>
     {
-        tracing.AddAspNetCoreInstrumentation();
+        tracing.AddAspNetCoreInstrumentation(options => options.Filter = context =>
+            !context.Request.Path.StartsWithSegments("/connect") && !context.Request.Path.StartsWithSegments("/account"));
         if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"])) tracing.AddOtlpExporter();
     }).WithMetrics(metrics =>
     {
@@ -99,6 +110,12 @@ builder.Services.AddOpenTelemetry().ConfigureResource(resource => resource.AddSe
         if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"])) metrics.AddOtlpExporter();
     });
 var app = builder.Build();
+if (args.Contains("--provision-oidc", StringComparer.Ordinal))
+{
+    using var scope = app.Services.CreateScope();
+    await OidcConfiguration.ProvisionClientAsync(scope.ServiceProvider, CancellationToken.None);
+    return;
+}
 if (args.Contains("--migrate", StringComparer.Ordinal))
 {
     using var scope = app.Services.CreateScope();
@@ -111,6 +128,8 @@ app.Use(async (context, next) =>
     context.Response.Headers["X-Correlation-ID"] = context.TraceIdentifier;
     context.Response.Headers.XContentTypeOptions = "nosniff";
     context.Response.Headers.CacheControl = "no-store";
+    context.Response.Headers["Referrer-Policy"] = "no-referrer";
+    context.Response.Headers.ContentSecurityPolicy = "default-src 'self'; script-src 'none'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'";
     using var scope = app.Logger.BeginScope(new Dictionary<string, object>
     {
         ["Service"] = "commerce.identity",
@@ -121,6 +140,10 @@ app.Use(async (context, next) =>
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseRateLimiter();
+app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapRazorPages(); app.MapControllers();
 app.MapGet("/health/live", () => Results.Ok(new { status = "live" }));
 app.MapGet("/api/v1/identity/registration-policy", (Microsoft.Extensions.Options.IOptions<RegistrationSettings> settings) =>
 {

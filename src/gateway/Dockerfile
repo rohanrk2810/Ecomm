@@ -8,6 +8,7 @@ RUN dotnet publish src/gateway/Commerce.Gateway -c Release --no-restore -o /app
 FROM mcr.microsoft.com/dotnet/aspnet:10.0.14
 WORKDIR /app
 COPY --from=build /app ./
+RUN mkdir -p /var/commerce/keys && chown $APP_UID:$APP_UID /var/commerce/keys
 USER $APP_UID
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080

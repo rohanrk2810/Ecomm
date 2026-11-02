@@ -34,3 +34,9 @@ database resend cooldown and protected transactional mail queue. Capture SMTP lo
 Mailpit and publish a PII-free verification event. Add explicit-action verification/resend
 screens. Verify expiry, replay, cross-account use, concurrency, SMTP and restart persistence.
 Commit backend and frontend as independently reviewed slices using the repository owner's identity.
+
+## Phase 2 slice 3 ? customer sessions
+Implement maintained OpenIddict code/S256 PKCE in Identity and an opaque Redis-backed
+BFF cookie in gateway. Add durable revocation/audit, exact callbacks and CSRF-protected
+logout. Add the lazy account screen, native browser redirects, negative protocol tests
+and a real SMTP/OIDC/restart smoke. Commit verified backend and UI separately.
