@@ -17,6 +17,7 @@ public sealed class OutboxMessage
 public sealed class IdentityDatabase(DbContextOptions<IdentityDatabase> options)
     : IdentityDbContext<Account, IdentityRole<Guid>, Guid>(options)
 {
+    public DbSet<MfaCodeUse> MfaCodeUses => Set<MfaCodeUse>();
     public DbSet<OutboxMessage> Outbox => Set<OutboxMessage>();
     public DbSet<PasswordChallenge> PasswordChallenges => Set<PasswordChallenge>();
     public DbSet<EmailChallenge> EmailChallenges => Set<EmailChallenge>();
@@ -35,6 +36,7 @@ public sealed class IdentityDatabase(DbContextOptions<IdentityDatabase> options)
             entity.HasIndex(x => new { x.UserId, x.ExpiresAtUtc });
         });
         builder.Entity<PasswordChallenge>(entity => { entity.HasKey(x => x.UserId); entity.Property(x => x.TokenHash).HasMaxLength(64); entity.HasOne<Account>().WithOne().HasForeignKey<PasswordChallenge>(x => x.UserId).OnDelete(DeleteBehavior.Cascade); });
+        builder.Entity<MfaCodeUse>(entity => { entity.HasKey(x => new { x.UserId, x.Digest }); entity.Property(x => x.Digest).HasMaxLength(64); entity.HasOne<Account>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade); });
         builder.Entity<AuthenticationAudit>().HasKey(x => x.Id);
         builder.Entity<EmailChallenge>(entity =>
         {

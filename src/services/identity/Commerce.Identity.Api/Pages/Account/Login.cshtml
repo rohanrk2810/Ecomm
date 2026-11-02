@@ -9,5 +9,7 @@
  <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl">
  <label for="email">Email address</label><input id="email" name="Email" type="email" autocomplete="username" maxlength="254" required value="@Model.Email">
  <label for="password">Password</label><input id="password" name="Password" type="password" autocomplete="current-password" maxlength="128" required>
+ <label for="authenticator">Authenticator code (if enabled)</label><input id="authenticator" name="AuthenticatorCode" inputmode="numeric" autocomplete="one-time-code" maxlength="32">
+ <label for="recovery">Or use one recovery code</label><input id="recovery" name="RecoveryCode" autocomplete="off" maxlength="128">
  <button type="submit">Sign in</button>
 </form><p>Your email address must be verified before you can sign in.</p></main></body></html>

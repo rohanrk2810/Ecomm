@@ -14,11 +14,13 @@ namespace Commerce.Identity.Api.Pages.Account;
 
 [EnableRateLimiting("registration")]
 public sealed class LoginModel(UserManager<IdentityAccount> users, SignInManager<IdentityAccount> signIn,
-    IdentityDatabase db, IOptions<OidcSettings> settings, TimeProvider clock) : PageModel
+    MfaGate mfa, IdentityDatabase db, IOptions<OidcSettings> settings, TimeProvider clock) : PageModel
 {
     [BindProperty, Required, EmailAddress, StringLength(254)] public string Email { get; set; } = string.Empty;
     [BindProperty, Required, StringLength(128), DataType(DataType.Password)] public string Password { get; set; } = string.Empty;
     [BindProperty(SupportsGet = true)] public string ReturnUrl { get; set; } = string.Empty;
+    [BindProperty, StringLength(32)] public string? AuthenticatorCode { get; set; }
+    [BindProperty, StringLength(128)] public string? RecoveryCode { get; set; }
     public string? Error { get; private set; }
     public IActionResult OnGet() => ValidReturnUrl() ? Page() : BadRequest();
     private bool ValidReturnUrl() => Url.IsLocalUrl(ReturnUrl) && ReturnUrl.Split('?')[0] == "/connect/authorize";
@@ -27,8 +29,10 @@ public sealed class LoginModel(UserManager<IdentityAccount> users, SignInManager
         if (!ValidReturnUrl()) return BadRequest();
         IdentityAccount? account = null;
         if (ModelState.IsValid) account = await users.FindByEmailAsync(Email.Trim());
-        var success = account is not null && !account.TwoFactorEnabled && (await signIn.CheckPasswordSignInAsync(account, Password, true)).Succeeded;
-        Password = string.Empty; ModelState.Remove(nameof(Password));
+        var success = account is not null && (await signIn.CheckPasswordSignInAsync(account, Password, true)).Succeeded;
+        if (success && account!.TwoFactorEnabled) success = await mfa.VerifyAsync(account, AuthenticatorCode, RecoveryCode, cancellationToken);
+        Password = string.Empty; AuthenticatorCode = null; RecoveryCode = null;
+        ModelState.Remove(nameof(Password)); ModelState.Remove(nameof(AuthenticatorCode)); ModelState.Remove(nameof(RecoveryCode));
         if (!success || account is null)
         {
             db.AuthenticationAudits.Add(new AuthenticationAudit

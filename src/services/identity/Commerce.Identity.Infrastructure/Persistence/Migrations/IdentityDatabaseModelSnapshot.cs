@@ -171,6 +171,23 @@ namespace Commerce.Identity.Infrastructure.Persistence.Migrations
                     b.ToTable("EmailChallenges", "identity");
                 });
 
+            modelBuilder.Entity("Commerce.Identity.Infrastructure.MfaCodeUse", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Digest")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId", "Digest");
+
+                    b.ToTable("MfaCodeUses", "identity");
+                });
+
             modelBuilder.Entity("Commerce.Identity.Infrastructure.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -622,6 +639,15 @@ namespace Commerce.Identity.Infrastructure.Persistence.Migrations
                     b.HasOne("Commerce.Identity.Infrastructure.Account", null)
                         .WithOne()
                         .HasForeignKey("Commerce.Identity.Infrastructure.EmailChallenge", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Commerce.Identity.Infrastructure.MfaCodeUse", b =>
+                {
+                    b.HasOne("Commerce.Identity.Infrastructure.Account", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

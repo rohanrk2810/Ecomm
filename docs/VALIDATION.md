@@ -145,3 +145,16 @@ security, key rotation, session/audit retention and operational sign-off remain 
 - Recovery uses independent database challenges and an explicit queued-mail kind. No new
   package or secret is introduced. Production readiness is not claimed. Additional operational
   load/abuse testing, retention and production sender/key approval remain release work.
+
+## MFA verification first slice
+
+38 backend tests passed (30 Identity integration, 8 gateway). New cases enroll synthetic
+accounts via the maintained UserManager test setup, submit the real CSRF-protected password
+form with a valid authenticator/recovery code, and reject reuse from a separate browser.
+The existing missing-second-factor denial test still passes. No actual staff account was
+created, enrolled or granted access. Enrollment UI, MFA assurance claims and role/branch
+authorization remain separate required work. See docs/mfa-login.md for the precise scope.
+
+MFA slice: locked Docker build and explicit migration passed. Existing native SMTP/OIDC
+login, restart persistence, CSRF logout and forged-callback smoke passed after deployment.
+Backend formatting verification, NuGet audit and staged source secret scan passed.

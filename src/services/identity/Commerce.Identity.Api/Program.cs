@@ -83,6 +83,7 @@ builder.Services.AddScoped<IAccountRegistrationStore, AccountRegistrationStore>(
 builder.Services.AddScoped<RegistrationService>();
 builder.Services.AddScoped<VerificationIssuer>();
 builder.Services.AddScoped<PasswordRecovery>();
+builder.Services.AddScoped<MfaGate>();
 builder.Services.AddOptions<PasswordRecoverySettings>().BindConfiguration("PasswordRecovery").Validate(x => x.LifetimeMinutes is >= 5 and <= 30 && x.CooldownSeconds is >= 30 and <= 3600, "Invalid password recovery policy").ValidateOnStart();
 builder.Services.AddScoped<IEmailVerificationStore, EmailVerificationStore>();
 builder.Services.AddScoped<VerificationWorkflow>();

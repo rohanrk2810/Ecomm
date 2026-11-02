@@ -16,7 +16,7 @@ cookies. Staff MFA is required before staff access is enabled. No hand-written J
 Development implementation now includes registration, email verification (ADR-0016),
 OpenIddict authorization code with S256 PKCE and a gateway BFF backed by protected
 Redis tickets. Exact first-party callbacks use implicit consent. No refresh tokens,
-third-party clients or staff access are enabled. MFA-enabled accounts fail closed.
+third-party clients or staff access are enabled. MFA-enabled accounts require an enrolled authenticator or recovery code; enrollment and staff access remain pending.
 The user authorized continued implementation; production provider/consent approval
 remains pending. See [session behavior and setup](../customer-sessions.md).
 

@@ -138,6 +138,46 @@ public sealed class OidcTests(IdentityFixture factory) : IClassFixture<IdentityF
         using var check = factory.Services.CreateScope();
         Assert.False(await check.ServiceProvider.GetRequiredService<IdentityDatabase>().CustomerSessions.AnyAsync(x => x.UserId == user.User.Id, Token));
     }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EnrolledMfaAllowsOneCodeAndRejectsReplay(bool recovery)
+    {
+        var user = await UserAsync(); string code;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<Account>>();
+            var account = (await users.FindByIdAsync(user.User.Id.ToString()))!;
+            Assert.True((await users.ResetAuthenticatorKeyAsync(account)).Succeeded);
+            Assert.True((await users.SetTwoFactorEnabledAsync(account, true)).Succeeded);
+            if (recovery) code = (await users.GenerateNewTwoFactorRecoveryCodesAsync(account, 2))!.First();
+            else
+            {
+                var encoded = (await users.GetAuthenticatorKeyAsync(account))!;
+                var bytes = new List<byte>(); int buffer = 0, bits = 0;
+                foreach (var character in encoded.TrimEnd('='))
+                {
+                    buffer = (buffer << 5) | "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567".IndexOf(character); bits += 5;
+                    if (bits >= 8) { bits -= 8; bytes.Add((byte)(buffer >> bits)); }
+                }
+                var counter = new byte[8]; System.Buffers.Binary.BinaryPrimitives.WriteInt64BigEndian(counter, DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 30);
+                var hash = HMACSHA1.HashData(bytes.ToArray(), counter); int offset = hash[^1] & 15;
+                code = ((System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(hash.AsSpan(offset, 4)) & 0x7fffffff) % 1000000).ToString("D6");
+            }
+        }
+        using var client = Browser();
+        var fields = await LoginFormAsync(client, WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(48)));
+        fields["Email"] = user.User.Email!; fields["Password"] = user.Password;
+        fields[recovery ? "RecoveryCode" : "AuthenticatorCode"] = code;
+        using var response = await client.PostAsync("/account/login", new FormUrlEncodedContent(fields), Token);
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        using var other = Browser();
+        var replay = await LoginFormAsync(other, WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(48)));
+        replay["Email"] = user.User.Email!; replay["Password"] = user.Password;
+        replay[recovery ? "RecoveryCode" : "AuthenticatorCode"] = code;
+        using var rejected = await other.PostAsync("/account/login", new FormUrlEncodedContent(replay), Token);
+        Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+    }
     [Fact]
     public async Task MissingPkceChallengeIsRejected()
     {

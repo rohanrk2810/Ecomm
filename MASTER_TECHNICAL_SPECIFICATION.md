@@ -1675,3 +1675,7 @@ docs/customer-sessions.md and ADR-0002; production approval remains pending.
 Local customer password recovery now uses maintained Identity reset tokens, independent
 durable single-use challenges, protected queued mail and atomic session revocation.
 See docs/customer-sessions.md; production security/operational approval remains pending.
+
+Local MFA verification now validates already-enrolled authenticator/recovery codes
+with durable replay protection. Enrollment, MFA session assurance and all staff
+permissions remain pending; see docs/mfa-login.md.

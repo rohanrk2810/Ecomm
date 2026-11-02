@@ -80,3 +80,6 @@ migration and BFF client registration before starting Identity/gateway.
 
 Customer password recovery is available at http://localhost:4200/forgot-password.
 Apply the Identity migration and see docs/customer-sessions.md for lifecycle details.
+
+Already-enrolled accounts can use authenticator/recovery codes on the Identity login
+form. Apply the latest Identity migration; see docs/mfa-login.md for scope and gaps.
