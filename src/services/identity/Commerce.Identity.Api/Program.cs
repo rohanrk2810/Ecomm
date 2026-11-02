@@ -82,6 +82,8 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IAccountRegistrationStore, AccountRegistrationStore>();
 builder.Services.AddScoped<RegistrationService>();
 builder.Services.AddScoped<VerificationIssuer>();
+builder.Services.AddScoped<PasswordRecovery>();
+builder.Services.AddOptions<PasswordRecoverySettings>().BindConfiguration("PasswordRecovery").Validate(x => x.LifetimeMinutes is >= 5 and <= 30 && x.CooldownSeconds is >= 30 and <= 3600, "Invalid password recovery policy").ValidateOnStart();
 builder.Services.AddScoped<IEmailVerificationStore, EmailVerificationStore>();
 builder.Services.AddScoped<VerificationWorkflow>();
 builder.Services.AddHostedService<VerificationEmailDispatcher>();
@@ -181,5 +183,12 @@ app.MapPost("/api/v1/identity/email-verification-requests", async (ResendEmailRe
         return Results.Json(new RegistrationResponse("pending_verification"), statusCode: 202);
     }).RequireRateLimiting("registration").WithName("RequestCustomerEmailVerification");
 app.MapFallback(() => Results.Problem(statusCode: 401, title: "Authentication is not available for this operation."));
+app.MapPost("/api/v1/identity/password-reset-requests", async (PasswordResetRequest request, PasswordRecovery recovery, CancellationToken ct) =>
+{
+    await recovery.RequestAsync(request.Email, ct); return Results.Json(new { status = "request_received" }, statusCode: 202);
+}).RequireRateLimiting("registration");
+app.MapPost("/api/v1/identity/password-resets", async (PasswordReset request, PasswordRecovery recovery, HttpContext context, CancellationToken ct) =>
+    await recovery.ResetAsync(request, context.TraceIdentifier, ct) ? Results.Ok(new { status = "password_reset" }) : Results.Problem(statusCode: 400, title: "Reset link or password is invalid. Check the password policy or request a new link."))
+    .RequireRateLimiting("registration");
 app.Run();
 public partial class Program;

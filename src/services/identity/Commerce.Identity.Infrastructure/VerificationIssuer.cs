@@ -23,7 +23,7 @@ public sealed class VerificationIssuer(IdentityDatabase db, UserManager<Account>
         challenge.ExpiresAtUtc = now.AddMinutes(settings.Value.LifetimeMinutes);
         challenge.ResendAfterUtc = now.AddSeconds(settings.Value.ResendCooldownSeconds);
         challenge.ConsumedAtUtc = null;
-        await db.VerificationEmails.Where(x => x.UserId == account.Id && x.DeliveredAtUtc == null && x.CancelledAtUtc == null)
+        await db.VerificationEmails.Where(x => x.UserId == account.Id && x.Kind == "verification" && x.DeliveredAtUtc == null && x.CancelledAtUtc == null)
             .ExecuteUpdateAsync(update => update.SetProperty(x => x.CancelledAtUtc, now), cancellationToken);
         var link = settings.Value.StorefrontBaseUri.TrimEnd('/') + "/verify-email#user=" + account.Id + "&token=" + token;
         var payload = JsonSerializer.Serialize(new VerificationEmailContent(account.Email

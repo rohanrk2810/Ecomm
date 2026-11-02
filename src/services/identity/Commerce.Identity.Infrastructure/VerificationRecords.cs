@@ -10,6 +10,7 @@ public sealed class EmailChallenge
 }
 public sealed class VerificationEmail
 {
+    public string Kind { get; set; } = "verification";
     public Guid Id { get; set; }
     public Guid UserId { get; set; }
     public string ProtectedPayload { get; set; } = string.Empty;

@@ -1671,3 +1671,7 @@ PKCE and gateway BFF protected Redis tickets. Identity owns durable session revo
 and audits. Exact first-party callbacks, confirmed email, CSRF and token introspection
 are enforced. No refresh tokens or staff authorization are enabled. See
 docs/customer-sessions.md and ADR-0002; production approval remains pending.
+
+Local customer password recovery now uses maintained Identity reset tokens, independent
+durable single-use challenges, protected queued mail and atomic session revocation.
+See docs/customer-sessions.md; production security/operational approval remains pending.

@@ -198,6 +198,30 @@ namespace Commerce.Identity.Infrastructure.Persistence.Migrations
                     b.ToTable("Outbox", "identity");
                 });
 
+            modelBuilder.Entity("Commerce.Identity.Infrastructure.PasswordChallenge", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ConsumedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ResendAfterUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("PasswordChallenges", "identity");
+                });
+
             modelBuilder.Entity("Commerce.Identity.Infrastructure.VerificationEmail", b =>
                 {
                     b.Property<Guid>("Id")
@@ -218,6 +242,13 @@ namespace Commerce.Identity.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTimeOffset>("ExpiresAtUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("verification");
 
                     b.Property<DateTimeOffset>("NextAttemptAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -591,6 +622,15 @@ namespace Commerce.Identity.Infrastructure.Persistence.Migrations
                     b.HasOne("Commerce.Identity.Infrastructure.Account", null)
                         .WithOne()
                         .HasForeignKey("Commerce.Identity.Infrastructure.EmailChallenge", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Commerce.Identity.Infrastructure.PasswordChallenge", b =>
+                {
+                    b.HasOne("Commerce.Identity.Infrastructure.Account", null)
+                        .WithOne()
+                        .HasForeignKey("Commerce.Identity.Infrastructure.PasswordChallenge", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

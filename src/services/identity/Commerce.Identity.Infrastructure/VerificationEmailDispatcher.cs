@@ -51,9 +51,9 @@ public sealed class VerificationEmailDispatcher(IServiceScopeFactory scopes, IDa
                             var payload = JsonSerializer.Deserialize<VerificationEmailContent>(protection.CreateProtector(VerificationIssuer.MailPurpose).Unprotect(row.ProtectedPayload))
                                 ?? throw new InvalidOperationException("Invalid verification delivery payload.");
                             var from = MailboxAddress.Parse(options.FromAddress);
-                            var message = new MimeMessage { Subject = "Verify your email address", MessageId = row.Id.ToString("N") + "@" + from.Address.Split('@')[1] };
+                            var message = new MimeMessage { Subject = row.Kind == "password-reset" ? "Reset your password" : "Verify your email address", MessageId = row.Id.ToString("N") + "@" + from.Address.Split('@')[1] };
                             message.From.Add(from); message.To.Add(MailboxAddress.Parse(payload.Recipient));
-                            message.Body = new TextPart("plain") { Text = "Verify your email address by opening this link and selecting Verify email:\n\n" + payload.Link + "\n\nThis link expires. If you did not request this, ignore this email." };
+                            message.Body = new TextPart("plain") { Text = (row.Kind == "password-reset" ? "Reset your password by opening this link:\n\n" : "Verify your email address by opening this link and selecting Verify email:\n\n") + payload.Link + "\n\nThis link expires. If you did not request this, ignore this email." };
                             using var smtp = new SmtpClient { Timeout = 10000 };
                             await smtp.ConnectAsync(options.Host, options.Port, options.StartTls ? SecureSocketOptions.StartTls : SecureSocketOptions.None, stoppingToken);
                             if (!string.IsNullOrEmpty(options.Username)) await smtp.AuthenticateAsync(options.Username,

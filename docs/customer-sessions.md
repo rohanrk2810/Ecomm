@@ -67,3 +67,23 @@ checks the complete flow and restarts the two containers. CI overrides
 `PUBLIC_APP_ORIGIN=http://localhost:5080` so callbacks work without a frontend process.
 Recovery, staff MFA, branch roles, session administration, audit retention/cleanup,
 production deployment and operational outage alerting remain subsequent work.
+
+## Customer password recovery
+
+The storefront exposes /forgot-password and /reset-password. Requests receive a neutral
+202, including unknown/unverified accounts. Identity sends only to confirmed accounts,
+with a durable cooldown (PasswordRecovery:CooldownSeconds, default 60) and challenge
+expiry (PasswordRecovery:LifetimeMinutes, default 15, validated 5?30). The maintained
+Identity token provider also enforces its own lifetime. Links are fragment-only and are
+cleared by the page; submitting is explicit. Browser reload requires reopening the link.
+
+An independent PasswordChallenges table stores only the digest and lifecycle timestamps.
+The migration adds a Kind discriminator to the protected mail queue, defaulting existing
+messages to verification. Recovery and confirmation cancellation are isolated by purpose.
+Successful reset atomically changes the password/security stamp, consumes the challenge,
+revokes durable sessions, cancels pending recovery mail and records PasswordReset audit.
+Invalid passwords do not spend a link. There is no automatic sign-in or lockout reset.
+Apply the owning Identity migration explicitly, rebuild/restart Identity and gateway,
+then use Mailpit locally. No new secrets or packages are needed. Run
+python scripts/test/password-reset-smoke.py for captured SMTP delivery/reset/replay checks.
+Production sender, key custody, abuse monitoring and staff recovery policies remain pending.

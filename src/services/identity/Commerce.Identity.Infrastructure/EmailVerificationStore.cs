@@ -52,7 +52,7 @@ public sealed class EmailVerificationStore(IdentityDatabase db, UserManager<Acco
                 "commerce.identity", userId.ToString(), 2, correlationId, correlationId, Activity.Current?.Id,
                 new UserEmailVerified(userId)), new JsonSerializerOptions(JsonSerializerDefaults.Web))
         });
-        await db.VerificationEmails.Where(x => x.UserId == userId && x.DeliveredAtUtc == null)
+        await db.VerificationEmails.Where(x => x.UserId == userId && x.Kind == "verification" && x.DeliveredAtUtc == null)
             .ExecuteUpdateAsync(update => update.SetProperty(x => x.CancelledAtUtc, now), cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);

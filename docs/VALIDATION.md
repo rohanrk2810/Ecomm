@@ -130,3 +130,18 @@ retention/replay tooling and production key custody are still required before re
 
 Password recovery, staff MFA/permissions, production provider/consent approval, deployment
 security, key rotation, session/audit retention and operational sign-off remain pending.
+
+## Local customer password recovery
+
+- 36 backend tests passed (28 Identity integration, 8 gateway), including neutral unknown/
+  unverified requests, cooldown, password-policy rejection without consuming the link,
+  cross-account rejection, successful reset, replay rejection, old/new password checks
+  and durable session revocation. Existing OIDC and verification checks still pass.
+- Real Docker Identity/gateway builds, explicit migration and Mailpit SMTP recovery smoke
+  passed: captured reset mail, successful password replacement and consumed-link rejection.
+- Frontend tests cover immediate fragment clearing, explicit submission, duplicate submit
+  prevention and clearing password controls after success. Full frontend checks are recorded
+  in the task result. NuGet and npm dependency audits reported no known vulnerabilities.
+- Recovery uses independent database challenges and an explicit queued-mail kind. No new
+  package or secret is introduced. Production readiness is not claimed. Additional operational
+  load/abuse testing, retention and production sender/key approval remain release work.

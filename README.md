@@ -77,3 +77,6 @@ Infrastructure smoke checks require Python 3.11+ (`python` on Linux/macOS, `py` 
 Customer OIDC sign-in/logout and the My account page are now available locally.
 Follow [session setup](docs/customer-sessions.md) for explicit certificate preparation,
 migration and BFF client registration before starting Identity/gateway.
+
+Customer password recovery is available at http://localhost:4200/forgot-password.
+Apply the Identity migration and see docs/customer-sessions.md for lifecycle details.

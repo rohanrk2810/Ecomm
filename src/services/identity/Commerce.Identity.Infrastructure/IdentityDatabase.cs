@@ -18,6 +18,7 @@ public sealed class IdentityDatabase(DbContextOptions<IdentityDatabase> options)
     : IdentityDbContext<Account, IdentityRole<Guid>, Guid>(options)
 {
     public DbSet<OutboxMessage> Outbox => Set<OutboxMessage>();
+    public DbSet<PasswordChallenge> PasswordChallenges => Set<PasswordChallenge>();
     public DbSet<EmailChallenge> EmailChallenges => Set<EmailChallenge>();
     public DbSet<CustomerSession> CustomerSessions => Set<CustomerSession>();
     public DbSet<AuthenticationAudit> AuthenticationAudits => Set<AuthenticationAudit>();
@@ -33,6 +34,7 @@ public sealed class IdentityDatabase(DbContextOptions<IdentityDatabase> options)
             entity.HasOne<Account>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(x => new { x.UserId, x.ExpiresAtUtc });
         });
+        builder.Entity<PasswordChallenge>(entity => { entity.HasKey(x => x.UserId); entity.Property(x => x.TokenHash).HasMaxLength(64); entity.HasOne<Account>().WithOne().HasForeignKey<PasswordChallenge>(x => x.UserId).OnDelete(DeleteBehavior.Cascade); });
         builder.Entity<AuthenticationAudit>().HasKey(x => x.Id);
         builder.Entity<EmailChallenge>(entity =>
         {
@@ -42,6 +44,7 @@ public sealed class IdentityDatabase(DbContextOptions<IdentityDatabase> options)
         });
         builder.Entity<VerificationEmail>(entity =>
         {
+            entity.Property(x => x.Kind).HasMaxLength(32).HasDefaultValue("verification");
             entity.HasKey(x => x.Id);
             entity.HasOne<Account>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(x => x.NextAttemptAtUtc).HasFilter("\"DeliveredAtUtc\" IS NULL AND \"CancelledAtUtc\" IS NULL AND \"AbandonedAtUtc\" IS NULL");

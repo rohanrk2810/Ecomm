@@ -1,6 +1,6 @@
-﻿# Password recovery implementation plan
+# Password recovery implementation plan
 
-Status: implementation pending. Owning service: Identity; gateway provides same-origin
+Status: local backend and storefront implementation added; see validation evidence. Owning service: Identity; gateway provides same-origin
 routing. This slice extends customer recovery only and grants no staff access.
 
 ## Contracts and data
