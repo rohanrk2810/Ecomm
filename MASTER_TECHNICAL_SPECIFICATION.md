@@ -1687,3 +1687,8 @@ session revocation are documented in docs/mfa-login.md. Staff access remains pen
 Local sessions now persist successful MFA assurance. OIDC/BFF enforce that proof against
 current durable session state. VerifiedMfa is an authentication-strength requirement,
 not staff membership or permission. See docs/mfa-login.md.
+
+The local Identity staff-access read API now owns membership, permission registry and
+explicit branch-role links, independently validates bearer tokens and live MFA/session
+state, and exposes only the caller's current grants. No production staff grants or role
+list are seeded. See docs/staff-access-plan.md for scope and remaining administration.

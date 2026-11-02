@@ -1,10 +1,12 @@
 using Commerce.Gateway;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Yarp.ReverseProxy.Transforms;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
@@ -14,7 +16,16 @@ builder.Services.AddProblemDetails(options =>
         context.ProblemDetails.Extensions["correlationId"] = context.HttpContext.TraceIdentifier);
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks().AddCheck("gateway", () => HealthCheckResult.Healthy(), tags: ["ready"]);
-builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy")).AddTransforms(context =>
+{
+    if (context.Route.Metadata?.TryGetValue("IdentityAccessToken", out var forward) == true && forward == "true")
+        context.AddRequestTransform(async transform =>
+        {
+            transform.ProxyRequest.Headers.Remove("Authorization"); transform.ProxyRequest.Headers.Remove("Cookie");
+            var token = await transform.HttpContext.GetTokenAsync(BffConfiguration.CookieScheme, "access_token");
+            if (!string.IsNullOrEmpty(token)) transform.ProxyRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        });
+});
 
 // Proxy routes require a validated BFF session unless explicitly marked anonymous.
 builder.AddBff();

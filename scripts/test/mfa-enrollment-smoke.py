@@ -116,3 +116,8 @@ redirect(request(callback),APP)
 final_session = json.loads(request(APP+'/bff/session')[2])
 assert final_session['authenticated'] is True and final_session['mfaVerified'] is True
 print('PASS enrolled account rejects password alone and completes OIDC with a recovery code',flush=True)
+
+# A verified customer still has no staff membership. The gateway must replace any
+# injected bearer header with its own validated server-side access token.
+assert request(APP + '/api/v1/identity/staff-access', extra_headers={'Authorization':'Bearer forged'})[0] == 403
+print('PASS verified customer has no staff access and caller cannot replace the BFF bearer token',flush=True)

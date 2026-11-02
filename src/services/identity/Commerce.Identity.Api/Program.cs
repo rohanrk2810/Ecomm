@@ -84,6 +84,13 @@ builder.Services.AddScoped<RegistrationService>();
 builder.Services.AddScoped<VerificationIssuer>();
 builder.Services.AddScoped<PasswordRecovery>();
 builder.Services.AddScoped<MfaGate>();
+builder.Services.AddScoped<StaffAccessReader>();
+builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, CurrentStaffHandler>();
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationMiddlewareResultHandler, ApiAuthorizationResults>();
+builder.Services.AddOpenIddict().AddValidation(options => { options.UseLocalServer(); options.EnableTokenEntryValidation(); options.EnableAuthorizationEntryValidation(); options.UseAspNetCore(); options.AddAudiences("commerce"); });
+builder.Services.AddAuthorization(options => options.AddPolicy("CurrentStaff", policy => policy
+    .AddAuthenticationSchemes(OpenIddict.Validation.AspNetCore.OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)
+    .RequireAuthenticatedUser().AddRequirements(new CurrentStaffRequirement())));
 builder.Services.AddScoped<MfaEnrollment>();
 builder.Services.AddScoped<IUserStore<Account>, ProtectedIdentityStore>();
 builder.Services.AddOptions<PasswordRecoverySettings>().BindConfiguration("PasswordRecovery").Validate(x => x.LifetimeMinutes is >= 5 and <= 30 && x.CooldownSeconds is >= 30 and <= 3600, "Invalid password recovery policy").ValidateOnStart();
@@ -193,5 +200,7 @@ app.MapPost("/api/v1/identity/password-reset-requests", async (PasswordResetRequ
 app.MapPost("/api/v1/identity/password-resets", async (PasswordReset request, PasswordRecovery recovery, HttpContext context, CancellationToken ct) =>
     await recovery.ResetAsync(request, context.TraceIdentifier, ct) ? Results.Ok(new { status = "password_reset" }) : Results.Problem(statusCode: 400, title: "Reset link or password is invalid. Check the password policy or request a new link."))
     .RequireRateLimiting("registration");
+app.MapGet("/api/v1/identity/staff-access", async (HttpContext context, StaffAccessReader reader, CancellationToken ct) =>
+    Results.Ok(await reader.ReadAsync(Guid.Parse(context.User.FindFirst("sub")!.Value), ct))).RequireAuthorization("CurrentStaff").WithName("GetCurrentStaffAccess").Produces<StaffAccessResponse>().ProducesProblem(401).ProducesProblem(403);
 app.Run();
 public partial class Program;

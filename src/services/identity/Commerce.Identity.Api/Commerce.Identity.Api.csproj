@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup>
+    <PackageReference Include="OpenIddict.Validation.AspNetCore" />
+    <PackageReference Include="OpenIddict.Validation.ServerIntegration" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
     <ProjectReference Include="../Commerce.Identity.Contracts/Commerce.Identity.Contracts.csproj" />
     <ProjectReference Include="../Commerce.Identity.Application/Commerce.Identity.Application.csproj" />

@@ -52,10 +52,17 @@ public sealed class OidcTests(IdentityFixture factory) : IClassFixture<IdentityF
         using var page = await client.GetAsync(authorize.Headers.Location, Token); Assert.Equal(HttpStatusCode.OK, page.StatusCode);
         return Inputs(await page.Content.ReadAsStringAsync(Token));
     }
-    private async Task<(string Code, string Verifier, Guid UserId)> CodeAsync(HttpClient client)
+    private async Task<(string Code, string Verifier, Guid UserId)> CodeAsync(HttpClient client, bool mfa = false)
     {
         var account = await UserAsync(); var verifier = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(48));
         var fields = await LoginFormAsync(client, verifier); fields["Email"] = account.User.Email ?? string.Empty; fields["Password"] = account.Password;
+        if (mfa)
+        {
+            using var scope = factory.Services.CreateScope(); var users = scope.ServiceProvider.GetRequiredService<UserManager<Account>>();
+            var enrolled = (await users.FindByIdAsync(account.User.Id.ToString()))!;
+            Assert.True((await users.ResetAuthenticatorKeyAsync(enrolled)).Succeeded); Assert.True((await users.SetTwoFactorEnabledAsync(enrolled, true)).Succeeded);
+            fields["AuthenticatorCode"] = MfaEnrollmentTests.Otp((await users.GetAuthenticatorKeyAsync(enrolled))!);
+        }
         using var login = await client.PostAsync("/account/login", new FormUrlEncodedContent(fields), Token); Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
         using var authorization = await client.GetAsync(login.Headers.Location, Token); Assert.Equal(HttpStatusCode.Redirect, authorization.StatusCode);
         var location = authorization.Headers.Location ?? throw new InvalidOperationException("Missing callback.");
@@ -197,6 +204,45 @@ public sealed class OidcTests(IdentityFixture factory) : IClassFixture<IdentityF
         replay[recovery ? "RecoveryCode" : "AuthenticatorCode"] = code;
         using var rejected = await other.PostAsync("/account/login", new FormUrlEncodedContent(replay), Token);
         Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+    }
+    [Fact]
+    public async Task StaffAccessRequiresBearerMfaMembershipAndReadsOnlyOwnBranches()
+    {
+        using var anonymous = Browser();
+        using var anonymousDenied = await anonymous.GetAsync("/api/v1/identity/staff-access", Token);
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymousDenied.StatusCode);
+        Assert.Equal("application/problem+json", anonymousDenied.Content.Headers.ContentType?.MediaType);
+        anonymous.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "forged");
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/v1/identity/staff-access", Token)).StatusCode);
+        using var customer = Browser(); var plain = await CodeAsync(customer);
+        using var plainExchange = await ExchangeAsync(customer, plain.Code, plain.Verifier);
+        using var plainTokens = JsonDocument.Parse(await plainExchange.Content.ReadAsStringAsync(Token));
+        customer.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", plainTokens.RootElement.GetProperty("access_token").GetString());
+        Assert.Equal(HttpStatusCode.Forbidden, (await customer.GetAsync("/api/v1/identity/staff-access", Token)).StatusCode);
+        using var staff = Browser(); var verified = await CodeAsync(staff, true);
+        using var exchanged = await ExchangeAsync(staff, verified.Code, verified.Verifier);
+        using var tokens = JsonDocument.Parse(await exchanged.Content.ReadAsStringAsync(Token));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await staff.GetAsync("/api/v1/identity/staff-access", Token)).StatusCode);
+        staff.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokens.RootElement.GetProperty("access_token").GetString());
+        Assert.Equal(HttpStatusCode.Forbidden, (await staff.GetAsync("/api/v1/identity/staff-access", Token)).StatusCode);
+        var branch = Guid.NewGuid(); var otherBranch = Guid.NewGuid();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<IdentityDatabase>(); var role = new IdentityRole<Guid> { Id = Guid.NewGuid(), Name = "synthetic-" + Guid.NewGuid().ToString("N") };
+            db.Roles.Add(role); db.StaffMemberships.AddRange(new StaffMembership { UserId = verified.UserId, IsActive = true }, new StaffMembership { UserId = plain.UserId, IsActive = true });
+            db.StaffPermissions.Add(new StaffPermission { Code = "synthetic." + role.Id });
+            db.StaffRolePermissions.Add(new StaffRolePermission { RoleId = role.Id, PermissionCode = "synthetic." + role.Id });
+            db.StaffBranchRoles.AddRange(new StaffBranchRole { UserId = verified.UserId, RoleId = role.Id, BranchId = branch }, new StaffBranchRole { UserId = plain.UserId, RoleId = role.Id, BranchId = otherBranch }); await db.SaveChangesAsync(Token);
+        }
+        // Membership alone cannot upgrade a password-only session.
+        Assert.Equal(HttpStatusCode.Forbidden, (await customer.GetAsync("/api/v1/identity/staff-access", Token)).StatusCode);
+        using var allowed = await staff.GetAsync("/api/v1/identity/staff-access?userId=" + plain.UserId, Token);
+        Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
+        using var grants = JsonDocument.Parse(await allowed.Content.ReadAsStringAsync(Token));
+        Assert.Equal(verified.UserId, grants.RootElement.GetProperty("userId").GetGuid());
+        Assert.Equal(branch, Assert.Single(grants.RootElement.GetProperty("branches").EnumerateArray()).GetProperty("branchId").GetGuid());
+        using (var scope = factory.Services.CreateScope()) await scope.ServiceProvider.GetRequiredService<IdentityDatabase>().StaffMemberships.Where(x => x.UserId == verified.UserId).ExecuteUpdateAsync(x => x.SetProperty(p => p.IsActive, false), Token);
+        Assert.Equal(HttpStatusCode.Forbidden, (await staff.GetAsync("/api/v1/identity/staff-access", Token)).StatusCode);
     }
     [Fact]
     public async Task MissingPkceChallengeIsRejected()

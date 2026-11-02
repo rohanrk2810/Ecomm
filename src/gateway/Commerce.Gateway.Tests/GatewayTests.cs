@@ -68,6 +68,14 @@ public sealed class GatewayTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.False((await authorization.AuthorizeAsync(new ClaimsPrincipal(new ClaimsIdentity([new Claim("amr", "pwd")], "test")), null, "VerifiedMfa")).Succeeded);
         Assert.True((await authorization.AuthorizeAsync(new ClaimsPrincipal(new ClaimsIdentity([new Claim("amr", "pwd"), new Claim("amr", "mfa")], "test")), null, "VerifiedMfa")).Succeeded);
     }
+    [Fact]
+    public async Task CallerBearerCannotBypassStaffBffPolicy()
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/identity/staff-access");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "forged");
+        using var response = await client.SendAsync(request, TestContextToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
     private static CancellationToken TestContextToken => CancellationToken.None;
 
     [Fact]

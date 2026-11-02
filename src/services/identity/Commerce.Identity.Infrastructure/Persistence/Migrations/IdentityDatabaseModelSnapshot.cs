@@ -259,6 +259,63 @@ namespace Commerce.Identity.Infrastructure.Persistence.Migrations
                     b.ToTable("PasswordChallenges", "identity");
                 });
 
+            modelBuilder.Entity("Commerce.Identity.Infrastructure.StaffBranchRole", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("UserId", "BranchId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("StaffBranchRoles", "identity");
+                });
+
+            modelBuilder.Entity("Commerce.Identity.Infrastructure.StaffMembership", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("StaffMemberships", "identity");
+                });
+
+            modelBuilder.Entity("Commerce.Identity.Infrastructure.StaffPermission", b =>
+                {
+                    b.Property<string>("Code")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Code");
+
+                    b.ToTable("StaffPermissions", "identity");
+                });
+
+            modelBuilder.Entity("Commerce.Identity.Infrastructure.StaffRolePermission", b =>
+                {
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PermissionCode")
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("RoleId", "PermissionCode");
+
+                    b.HasIndex("PermissionCode");
+
+                    b.ToTable("StaffRolePermissions", "identity");
+                });
+
             modelBuilder.Entity("Commerce.Identity.Infrastructure.VerificationEmail", b =>
                 {
                     b.Property<Guid>("Id")
@@ -686,6 +743,45 @@ namespace Commerce.Identity.Infrastructure.Persistence.Migrations
                     b.HasOne("Commerce.Identity.Infrastructure.Account", null)
                         .WithOne()
                         .HasForeignKey("Commerce.Identity.Infrastructure.PasswordChallenge", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Commerce.Identity.Infrastructure.StaffBranchRole", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Commerce.Identity.Infrastructure.StaffMembership", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Commerce.Identity.Infrastructure.StaffMembership", b =>
+                {
+                    b.HasOne("Commerce.Identity.Infrastructure.Account", null)
+                        .WithOne()
+                        .HasForeignKey("Commerce.Identity.Infrastructure.StaffMembership", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Commerce.Identity.Infrastructure.StaffRolePermission", b =>
+                {
+                    b.HasOne("Commerce.Identity.Infrastructure.StaffPermission", null)
+                        .WithMany()
+                        .HasForeignKey("PermissionCode")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

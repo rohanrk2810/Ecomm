@@ -183,3 +183,15 @@ the old access token immediately becomes inactive. The gateway policy rejects an
 and password-only identities. Locked Docker builds, explicit migration and the full native
 SMTP/OIDC/enrollment/recovery-login smoke passed; the final BFF session reports verified MFA.
 No role or staff privilege is granted by this authentication-strength policy.
+
+## Current staff branch grants
+
+42 backend tests passed (32 Identity, 10 gateway). The new end-to-end API integration
+checks missing/forged bearer tokens, provider-cookie-only access, password-only staff,
+MFA customers without membership, exact current-user branch grants despite an injected
+user ID, ProblemDetails denial and live membership revocation. The gateway rejects a
+caller bearer without BFF authentication. NuGet audit reported no known vulnerabilities.
+Locked Docker builds, explicit migration and the SMTP/OIDC/MFA smoke passed; an enrolled
+customer still received 403 and could not substitute a forged bearer on the staff route.
+No staff account or role list was seeded by this feature. Production staff administration
+and branch-owner validation remain separate work, documented in docs/staff-access-plan.md.
