@@ -174,3 +174,12 @@ Backend formatting verification, NuGet audit and staged source secret scan passe
 - No production staff account was created or granted privileges. No real key or recovery
   code was printed by smoke tests. Production factor reset, key custody, staff permissions
   and authoritative MFA assurance remain separate work.
+
+## MFA session assurance
+
+40 backend tests passed (31 Identity, 9 gateway). MFA login now also verifies the ID token
+and introspection amr, confirms durable MFA timestamps, removes assurance and checks that
+the old access token immediately becomes inactive. The gateway policy rejects anonymous
+and password-only identities. Locked Docker builds, explicit migration and the full native
+SMTP/OIDC/enrollment/recovery-login smoke passed; the final BFF session reports verified MFA.
+No role or staff privilege is granted by this authentication-strength policy.

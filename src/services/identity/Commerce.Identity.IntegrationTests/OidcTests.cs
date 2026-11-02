@@ -166,11 +166,31 @@ public sealed class OidcTests(IdentityFixture factory) : IClassFixture<IdentityF
             }
         }
         using var client = Browser();
-        var fields = await LoginFormAsync(client, WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(48)));
+        var verifier = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(48));
+        var fields = await LoginFormAsync(client, verifier);
         fields["Email"] = user.User.Email!; fields["Password"] = user.Password;
         fields[recovery ? "RecoveryCode" : "AuthenticatorCode"] = code;
         using var response = await client.PostAsync("/account/login", new FormUrlEncodedContent(fields), Token);
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        using var authorized = await client.GetAsync(response.Headers.Location, Token);
+        var authorizationCode = QueryHelpers.ParseQuery(authorized.Headers.Location!.Query)["code"].ToString();
+        using var exchange = await ExchangeAsync(client, authorizationCode, verifier);
+        Assert.Equal(HttpStatusCode.OK, exchange.StatusCode);
+        using var tokens = JsonDocument.Parse(await exchange.Content.ReadAsStringAsync(Token));
+        using var claims = JsonDocument.Parse(WebEncoders.Base64UrlDecode(tokens.RootElement.GetProperty("id_token").GetString()!.Split('.')[1]));
+        Assert.Contains(claims.RootElement.GetProperty("amr").EnumerateArray(), x => x.GetString() == "mfa");
+        var access = tokens.RootElement.GetProperty("access_token").GetString()!;
+        using var introspection = await client.PostAsync("/connect/introspect", new FormUrlEncodedContent(new Dictionary<string, string> { ["client_id"] = factory.ClientId, ["client_secret"] = factory.ClientSecret, ["token"] = access }), Token);
+        using var introspected = JsonDocument.Parse(await introspection.Content.ReadAsStringAsync(Token));
+        Assert.Contains(introspected.RootElement.GetProperty("amr").EnumerateArray(), x => x.GetString() == "mfa");
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<IdentityDatabase>();
+            var session = await db.CustomerSessions.SingleAsync(x => x.UserId == user.User.Id, Token);
+            Assert.NotNull(session.MfaVerifiedAtUtc);
+            session.MfaVerifiedAtUtc = null; await db.SaveChangesAsync(Token);
+        }
+        Assert.False(await IntrospectAsync(client, access));
         using var other = Browser();
         var replay = await LoginFormAsync(other, WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(48)));
         replay["Email"] = user.User.Email!; replay["Password"] = user.Password;

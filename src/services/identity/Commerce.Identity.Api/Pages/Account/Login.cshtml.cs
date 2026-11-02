@@ -54,6 +54,7 @@ public sealed class LoginModel(UserManager<IdentityAccount> users, SignInManager
             UserId = account.Id,
             SecurityStamp = account.SecurityStamp ?? string.Empty,
             CreatedAtUtc = now,
+            MfaVerifiedAtUtc = account.TwoFactorEnabled ? now : null,
             ExpiresAtUtc = now.AddMinutes(settings.Value.SessionMinutes)
         };
         await using (var transaction = await db.Database.BeginTransactionAsync(cancellationToken))

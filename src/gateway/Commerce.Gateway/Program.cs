@@ -18,9 +18,11 @@ builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSecti
 
 // Proxy routes require a validated BFF session unless explicitly marked anonymous.
 builder.AddBff();
-builder.Services.AddAuthorization(options => options.FallbackPolicy =
-    new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser().Build());
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
+    options.AddPolicy("VerifiedMfa", policy => policy.RequireAuthenticatedUser().RequireClaim("amr", "mfa"));
+});
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService("commerce.gateway"))
     .WithTracing(tracing =>

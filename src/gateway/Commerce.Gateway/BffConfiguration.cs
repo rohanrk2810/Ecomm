@@ -54,7 +54,7 @@ public static class BffConfiguration
            if (!settings.Value.Enabled) { context.RejectPrincipal(); return; }
            var access = context.Properties.GetTokenValue("access_token");
            if (string.IsNullOrEmpty(access) || !await context.HttpContext.RequestServices.GetRequiredService<IdentitySessionClient>()
-          .ActiveAsync(access, context.Principal?.FindFirstValue("sub"), context.HttpContext.RequestAborted))
+          .ActiveAsync(access, context.Principal?.FindFirstValue("sub"), context.Principal?.HasClaim("amr", "mfa") == true, context.HttpContext.RequestAborted))
            { context.RejectPrincipal(); await context.HttpContext.SignOutAsync(CookieScheme); }
        };
         });
@@ -64,6 +64,7 @@ public static class BffConfiguration
             options.SignInScheme = CookieScheme; options.Authority = value.Authority; options.ClientId = value.ClientId; options.ClientSecret = value.ClientSecret;
             options.ResponseType = OpenIdConnectResponseType.Code; options.ResponseMode = OpenIdConnectResponseMode.Query; options.UsePkce = true;
             options.Scope.Clear(); options.Scope.Add("openid"); options.SaveTokens = true; options.MapInboundClaims = false; options.UseTokenLifetime = true;
+            options.ClaimActions.Remove("amr");
             options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
             options.Backchannel = new HttpClient(new AuthorityHandler(new Uri(value.Authority), new Uri(value.InternalAuthority))) { Timeout = TimeSpan.FromSeconds(10) };
             options.TokenValidationParameters.ValidIssuer = new Uri(value.Authority).AbsoluteUri; options.TokenValidationParameters.NameClaimType = "sub";
@@ -95,6 +96,7 @@ public static class BffConfiguration
         {
             available = settings.Value.Enabled,
             authenticated = context.User.Identity?.IsAuthenticated == true,
+            mfaVerified = context.User.Identity?.IsAuthenticated == true && context.User.HasClaim("amr", "mfa"),
             userId = context.User.Identity?.IsAuthenticated == true ? context.User.FindFirstValue("sub") : null
         })).AllowAnonymous();
         app.MapGet("/bff/antiforgery", (HttpContext context, IAntiforgery antiforgery) => Results.Ok(new { requestToken = antiforgery.GetAndStoreTokens(context).RequestToken })).AllowAnonymous();

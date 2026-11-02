@@ -30,6 +30,8 @@ public sealed class AuthorizationController(CustomerSessionValidator sessions,
             return Challenge(new AuthenticationProperties { RedirectUri = Request.Path + Request.QueryString }, IdentityConstants.ApplicationScheme);
         var identity = new ClaimsIdentity("OIDC", Claims.Name, Claims.Role);
         identity.SetClaim(Claims.Subject, userId); identity.SetClaim("sid", sid);
+        var session = await db.CustomerSessions.AsNoTracking().SingleAsync(x => x.Id == Guid.Parse(sid!), cancellationToken);
+        identity.SetClaims("amr", session.MfaVerifiedAtUtc is not null ? ["pwd", "mfa"] : ["pwd"]);
         var principal = new ClaimsPrincipal(identity);
         principal.SetScopes(request.GetScopes());
         principal.SetResources("commerce");
@@ -43,7 +45,9 @@ public sealed class AuthorizationController(CustomerSessionValidator sessions,
         if (!request.IsAuthorizationCodeGrantType()) return BadRequest();
         var result = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         if (result.Principal is null || !await sessions.ActiveAsync(result.Principal.GetClaim(Claims.Subject),
-            result.Principal.GetClaim("sid"), cancellationToken))
+            result.Principal.GetClaim("sid"), cancellationToken) ||
+            (result.Principal.GetClaims("amr").Contains("mfa") && !await sessions.MfaAsync(
+                result.Principal.GetClaim(Claims.Subject), result.Principal.GetClaim("sid"), cancellationToken)))
             return Forbid(new AuthenticationProperties(new Dictionary<string, string?>
             { [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant }), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         return SignIn(result.Principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);

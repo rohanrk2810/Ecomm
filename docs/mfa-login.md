@@ -72,3 +72,18 @@ Run scripts/test/mfa-enrollment-smoke.py against local containers and captured S
 Enrollment does not grant staff access. MFA assurance claims, staff invitation, branch/role
 policies, factor reset, recovery-code regeneration and account offboarding remain required
 separate work. Recovery codes are not a substitute for an approved staff recovery policy.
+
+## Durable MFA session assurance
+
+The login transaction now records MfaVerifiedAtUtc only after a successful second factor.
+Existing sessions default to no assurance and require a fresh login. OIDC amr is derived
+from this durable record rather than a browser flag or the account enrollment setting.
+Code exchange and introspection reject a token asserting MFA when its session assurance
+has been removed; disabling MFA also invalidates an MFA-marked session. The gateway
+retains the validated amr claim, cross-checks it during introspection and provides a
+VerifiedMfa policy. This policy alone grants no staff membership or business permission.
+
+Only the minimal amr protocol field is added explicitly to confidential-BFF introspection;
+OpenIddict intentionally withholds general application claims from a presenter that is
+not an API audience. The gateway exposes mfaVerified as display information on /bff/session;
+client state never authorizes staff requests. Apply AddSessionMfaAssurance explicitly.

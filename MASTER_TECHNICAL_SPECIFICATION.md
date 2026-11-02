@@ -1683,3 +1683,7 @@ permissions remain pending; see docs/mfa-login.md.
 Local authenticator enrollment now requires password reauthentication, expiring stamp-bound
 setup and first-code verification. Protected MFA material, one-time recovery display and
 session revocation are documented in docs/mfa-login.md. Staff access remains pending.
+
+Local sessions now persist successful MFA assurance. OIDC/BFF enforce that proof against
+current durable session state. VerifiedMfa is an authentication-strength requirement,
+not staff membership or permission. See docs/mfa-login.md.

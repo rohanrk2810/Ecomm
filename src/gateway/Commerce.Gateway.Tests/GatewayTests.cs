@@ -1,7 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Commerce.Gateway.Tests;
@@ -9,10 +12,11 @@ namespace Commerce.Gateway.Tests;
 public sealed class GatewayTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient client;
+    private readonly WebApplicationFactory<Program> application;
 
     public GatewayTests(WebApplicationFactory<Program> factory)
     {
-        client = factory.CreateClient();
+        client = factory.CreateClient(); application = factory;
     }
 
     [Theory]
@@ -55,6 +59,15 @@ public sealed class GatewayTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Contains("correlationId", body);
     }
 
+    [Fact]
+    public async Task MfaPolicyRequiresAuthenticationAndVerifiedMethod()
+    {
+        using var scope = application.Services.CreateScope();
+        var authorization = scope.ServiceProvider.GetRequiredService<IAuthorizationService>();
+        Assert.False((await authorization.AuthorizeAsync(new ClaimsPrincipal(new ClaimsIdentity()), null, "VerifiedMfa")).Succeeded);
+        Assert.False((await authorization.AuthorizeAsync(new ClaimsPrincipal(new ClaimsIdentity([new Claim("amr", "pwd")], "test")), null, "VerifiedMfa")).Succeeded);
+        Assert.True((await authorization.AuthorizeAsync(new ClaimsPrincipal(new ClaimsIdentity([new Claim("amr", "pwd"), new Claim("amr", "mfa")], "test")), null, "VerifiedMfa")).Succeeded);
+    }
     private static CancellationToken TestContextToken => CancellationToken.None;
 
     [Fact]

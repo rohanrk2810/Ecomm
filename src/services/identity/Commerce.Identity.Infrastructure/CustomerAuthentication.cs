@@ -32,6 +32,7 @@ public sealed class CustomerSession
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset ExpiresAtUtc { get; set; }
     public DateTimeOffset? RevokedAtUtc { get; set; }
+    public DateTimeOffset? MfaVerifiedAtUtc { get; set; }
 }
 public sealed class AuthenticationAudit
 {
@@ -62,6 +63,11 @@ public static class DevelopmentOidcCertificates
 }
 public sealed class CustomerSessionValidator(IdentityDatabase db, TimeProvider clock)
 {
+    public Task<bool> MfaAsync(string? subject, string? sessionId, CancellationToken ct)
+    {
+        if (!Guid.TryParse(subject, out var userId) || !Guid.TryParse(sessionId, out var id)) return Task.FromResult(false);
+        return db.CustomerSessions.AnyAsync(x => x.Id == id && x.UserId == userId && x.MfaVerifiedAtUtc != null, ct);
+    }
     public Task<bool> ActiveAsync(string? subject, string? sessionId, CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(subject, out var userId) || !Guid.TryParse(sessionId, out var id)) return Task.FromResult(false);
@@ -69,7 +75,8 @@ public sealed class CustomerSessionValidator(IdentityDatabase db, TimeProvider c
         return (from session in db.CustomerSessions
                 join user in db.Users on session.UserId equals user.Id
                 where session.Id == id && session.UserId == userId && session.RevokedAtUtc == null &&
-                session.ExpiresAtUtc > now && user.EmailConfirmed && session.SecurityStamp == user.SecurityStamp
+                session.ExpiresAtUtc > now && user.EmailConfirmed && session.SecurityStamp == user.SecurityStamp &&
+                (session.MfaVerifiedAtUtc == null || user.TwoFactorEnabled)
                 select session.Id).AnyAsync(cancellationToken);
     }
     public async Task ValidateCookieAsync(CookieValidatePrincipalContext context)
@@ -93,7 +100,15 @@ public sealed class SessionIntrospectionHandler(CustomerSessionValidator session
     public async ValueTask HandleAsync(OpenIddictServerEvents.HandleIntrospectionRequestContext context)
     {
         if (!await sessions.ActiveAsync(context.GenericTokenPrincipal.GetClaim(Claims.Subject),
-            context.GenericTokenPrincipal.GetClaim("sid"), context.CancellationToken))
+            context.GenericTokenPrincipal.GetClaim("sid"), context.CancellationToken) ||
+            (context.GenericTokenPrincipal.GetClaims("amr").Contains("mfa") && !await sessions.MfaAsync(
+                context.GenericTokenPrincipal.GetClaim(Claims.Subject), context.GenericTokenPrincipal.GetClaim("sid"), context.CancellationToken)))
+        {
             context.Reject(Errors.InvalidToken, "The session is no longer active.");
+            return;
+        }
+        // The confidential BFF is a presenter, not an API audience. Return only the
+        // authentication method needed for its session check, not arbitrary user claims.
+        context.Claims["amr"] = System.Text.Json.JsonSerializer.SerializeToElement(context.GenericTokenPrincipal.GetClaims("amr"));
     }
 }

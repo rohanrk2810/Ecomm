@@ -113,5 +113,6 @@ form['RecoveryCode']=codes[0]
 authorize=redirect(request(login,form),IDP)
 callback=redirect(request(authorize),IDP)
 redirect(request(callback),APP)
-assert json.loads(request(APP+'/bff/session')[2])['authenticated'] is True
+final_session = json.loads(request(APP+'/bff/session')[2])
+assert final_session['authenticated'] is True and final_session['mfaVerified'] is True
 print('PASS enrolled account rejects password alone and completes OIDC with a recovery code',flush=True)
