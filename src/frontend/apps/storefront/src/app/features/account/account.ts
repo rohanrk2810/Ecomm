@@ -26,6 +26,7 @@ import { SessionApi } from '../../../../../../libs/auth-client/session-api';
         <h2>You're signed in.</h2>
         <p>Your account session is active.</p>
       </div>
+      <p><a href="/bff/mfa-setup">Set up an authenticator</a></p>
       <form method="post" action="/bff/logout">
         <input type="hidden" name="__RequestVerificationToken" [value]="csrf()" /><button
           type="submit"
