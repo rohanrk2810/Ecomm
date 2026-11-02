@@ -38,3 +38,8 @@ and Prettier validation passed. NuGet and npm audits reported no known vulnerabi
 The staged gitleaks scan found no secrets. Browser verification confirmed the anonymous
 page requires sign-in/MFA; authorized review, CSRF, grant/removal and failure behavior
 are exercised with synthetic HTTP fixtures rather than real employee assignments.
+Docker Identity/gateway builds and gateway readiness smoke passed. The extended MFA
+smoke passed SMTP verification, enrollment/session invalidation, recovery-code OIDC,
+credential-header replacement, CSRF enforcement, and denial of catalog/account lookup
+and role writes for an MFA customer without staff authority. Docker startup required
+the socket recovery documented in the local-development runbook.

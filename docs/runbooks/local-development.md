@@ -41,7 +41,20 @@ It rolls back temporary PostgreSQL data, deletes its Redis key, deletes its Kafk
 uploads/reads/deletes a synthetic Blob container and checks collector health/trace acceptance.
 These are dependency checks, not commerce/outbox/idempotency validation.
 
+## Docker Desktop stale socket startup failure
+
+On this workstation Docker Desktop also failed to restart with `The file cannot be
+accessed by the system` for stale `Docker/run/dockerInference` and
+`docker-secrets-engine/engine.sock` Windows socket reparse points. With all Docker
+processes stopped, inspect both directories under LOCALAPPDATA. When they contain only
+temporary socket files, preserve both directories by renaming them to unused backup
+names before starting Docker once. Renaming both together avoids leaving a fresh socket
+from a failed intermediate startup. This recovered the engine without resetting Docker
+or changing database volumes. Keep these backups local; do not move credential/config
+directories or use a factory reset for this error.
+
 ## Docker Desktop registry EOF workaround
+
 The engine is working but direct registry downloads can fail. On this workstation,
 host IPv4 transfers work. Optional fallback (normal TLS verification stays enabled):
 
