@@ -1,6 +1,10 @@
 import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
+    path: 'account',
+    loadComponent: () => import('./features/account/account').then((m) => m.Account),
+  },
+  {
     path: 'verify-email',
     loadComponent: () =>
       import('./features/email-verification/email-verification').then((m) => m.EmailVerification),

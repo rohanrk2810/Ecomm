@@ -15,7 +15,7 @@ import { RegistrationApi } from '../../../../../../libs/api-clients/registration
       <div class="pending" role="status">
         <h2>Email verified</h2>
         <p>Your email address has been verified.</p>
-        <a routerLink="/">Return to home</a>
+        <a routerLink="/account">Continue to sign in</a>
       </div>
     } @else if (state() === 'invalid') {
       <p role="alert">This verification link is missing, invalid or has expired.</p>
