@@ -1,6 +1,17 @@
 import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./features/password-recovery/password-recovery').then((m) => m.PasswordRecovery),
+  },
+  {
+    path: 'reset-password',
+    data: { reset: true },
+    loadComponent: () =>
+      import('./features/password-recovery/password-recovery').then((m) => m.PasswordRecovery),
+  },
+  {
     path: 'account',
     loadComponent: () => import('./features/account/account').then((m) => m.Account),
   },

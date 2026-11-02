@@ -18,6 +18,7 @@ import { SessionApi } from '../../../../../../libs/auth-client/session-api';
     } @else if (state() === 'anonymous') {
       <p>Sign in with your verified email address and password.</p>
       <a href="/bff/login">Sign in →</a>
+      <p><a routerLink="/forgot-password">Forgot your password?</a></p>
       <p>New here? <a routerLink="/register">Create an account</a></p>
       <p><a routerLink="/resend-verification">Request a verification email</a></p>
     } @else {
