@@ -1,0 +1,80 @@
+:host {
+  display: block;
+}
+.registration {
+  max-width: 540px;
+  margin: 52px auto 80px;
+  min-height: 480px;
+}
+.back {
+  display: inline-block;
+  color: #58705d;
+  font-size: 13px;
+  margin-bottom: 38px;
+}
+h1 {
+  font-size: clamp(36px, 5vw, 50px);
+  margin-bottom: 18px;
+}
+.lead,
+.help,
+.pending p {
+  color: #657667;
+  line-height: 1.7;
+}
+form {
+  margin-top: 28px;
+}
+label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 23px 0 8px;
+}
+input {
+  width: 100%;
+  border: 1px solid #b7c4b3;
+  border-radius: 8px;
+  padding: 13px;
+  background: white;
+  font: inherit;
+  color: #183e33;
+}
+input:focus-visible,
+button:focus-visible {
+  outline: 3px solid #91ac74;
+  outline-offset: 3px;
+}
+button {
+  padding: 14px 24px;
+  background: #234e3d;
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  margin-top: 22px;
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.help {
+  font-size: 12px;
+  margin: 9px 0;
+}
+.error {
+  color: #9b382c;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.pending {
+  border: 1px solid #d2dec7;
+  background: #f0f3e8;
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 28px;
+}
+.pending a {
+  color: #234e3d;
+}

@@ -7,13 +7,14 @@ Start Docker Desktop with Linux containers. From repo root run:
 `powershell -NoProfile -File scripts/dev/bootstrap.ps1`.
 It generates random local credentials in ignored .env, starts dependencies and builds apps.
 Do not print/copy .env into tickets, build logs or commits. Restrict local file permissions.
-PostgreSQL currently has no business database. Provision separate DB/users with the first service;
-the bootstrap administrator is for local provisioning only.
+Identity has its own database/role, provisioned by scripts/dev/provision-identity.ps1;
+the bootstrap administrator is for local provisioning only. Future services need separate DB/users.
 
 Gateway readiness checks its own startup only; it does not claim Kafka/database readiness
 because gateway uses neither yet. Compose health checks validate local dependencies separately.
 OTLP export is opt-in via OTEL_EXPORTER_OTLP_ENDPOINT. Collector debug exporter is local-only.
-No application seeds exist because there are no business services or migrations yet.
+Dependency bootstrap does not create application seeds. Identity migrations run explicitly;
+integration/smoke tests use only generated synthetic .invalid addresses.
 
 Stop: `docker compose --env-file .env -f deploy/docker-compose.local.yml down`.
 This preserves named volumes. Do not remove volumes unless intentionally resetting local data.

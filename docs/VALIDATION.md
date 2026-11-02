@@ -32,7 +32,9 @@ CI and Kubernetes review skeleton. Discovery preparation, ownership, threat mode
 | git diff --cached piped to Gitleaks stdin | No leaks in staged source; generated .env is ignored and untracked |
 
 Observed storefront and operations pages in local browser; runtime app names/headings rendered.
-No business database exists: migrations/events/outbox/inbox are not yet applicable.
+The foundation initially had no business database. Identity registration now owns its
+database and initial migration, UserRegistered contract and transactional outbox. No inbound
+consumer exists yet, so there is no consumer inbox in this slice.
 
 ## Corrected during verification
 Angular startup test originally called an internal API: corrected to actual TestBed initialization.
@@ -53,11 +55,34 @@ Local storage uses Azurite emulator (ADR-0015); final production storage/API rem
 Kubernetes is unapplied, uses explicit review placeholders and provisional resource sizing.
 CI workflow is authored but has not run remotely. Full SAST/DAST/container/IaC scans, SBOM,
 signing, release deployment, backups/restores, load tests, UAT and production readiness remain future work.
-Gateway readiness covers gateway startup only. Identity, customer, catalog, stock, order,
-payment, fulfilment, billing, notifications and reporting are not implemented.
+Gateway readiness covers gateway startup only. Identity registration readiness additionally
+checks database connectivity and applied migrations. Login, verification delivery, customer,
+catalog, stock, order, payment, fulfilment, billing, notifications and reporting remain pending.
 
 ## Next dependencies
 Continue Phase 2 with the confirmed email/password method. The proposed dedicated ASP.NET
 Core Identity + OpenIddict provider/BFF design is recorded in ADR-0002; provider and core
 discovery approval remain pending. Do not mistake the credential-method answer for those approvals.
 No unrelated business services were scaffolded and no remote repository was published.
+
+## Phase 2 registration slice — completed local checks
+- Foundation committed as a2f3b5b; Identity backend committed as 4808f81.
+- Explicit EF migration generation/application and locked Linux Identity/gateway builds passed.
+- `dotnet format Commerce.slnx --verify-no-changes --no-restore` passed.
+- `dotnet test Commerce.slnx --no-restore -c Release` passed: 6 gateway + 9 Identity tests.
+- PostgreSQL tests cover password hashing/unconfirmed state, concurrent case-varied duplicates,
+  invalid input, forbidden role/confirmation fields, real outbox-failure transaction rollback,
+  closed privileged routes and rate limiting. Fixture checks the resolved test DB before migrations.
+- `npm run build` passed for both applications; `npm test` passed: 14 storefront + 1 operations.
+- Registration UI tests cover policy outage, backend confirmation, duplicate clicks, password
+  clearing, invalid forms and rate-limit errors. Browser preview showed the real server policy.
+- `py scripts/test/identity-smoke.py` passed through Docker gateway, Identity/PostgreSQL,
+  acknowledged native Kafka publish and independent Kafka consumption. No email/password in event.
+- NuGet audit reported no known vulnerabilities. Staged source secret scan passed.
+- Browser registration page rendered with email/password labels and actual runtime policy.
+
+Corrected during this slice: generated migration style rules, strict JSON error mapping,
+JSONB test query, deferred DI configuration/rate limits and test database resolution guards.
+Registration creates an unconfirmed account only. No email, login/session, reset, OIDC,
+staff MFA, branch authorization or production readiness is claimed. Local registration smoke
+accounts and synthetic test records are intentionally retained. Remote CI has not run.

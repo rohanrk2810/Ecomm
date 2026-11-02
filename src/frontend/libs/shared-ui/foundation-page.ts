@@ -1,7 +1,9 @@
 import { Component, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { RuntimeConfigService } from '../runtime-config/runtime-config';
 
 @Component({
+  imports: [RouterLink],
   selector: 'commerce-foundation-page',
   template: `
     <section class="hero" aria-labelledby="hero-title">
@@ -12,8 +14,9 @@ import { RuntimeConfigService } from '../runtime-config/runtime-config';
         <div class="notice">
           <span class="notice-mark" aria-hidden="true">i</span>
           <div>
-            <strong>We're getting things ready.</strong>
-            <p>Shopping and account access will be available after setup is complete.</p>
+            <strong>Shopping opens soon.</strong>
+            <p>Create your account while we prepare your shopping experience.</p>
+            <a routerLink="/register">Create an account →</a>
           </div>
         </div>
       </div>

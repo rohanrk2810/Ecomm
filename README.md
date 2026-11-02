@@ -33,6 +33,11 @@ Then `dotnet run --project src/gateway/Commerce.Gateway` and, in src/frontend,
 `npm run start:storefront` or `npm run start:operations` in separate terminals.
 
 ## Checks
+Identity tests need the isolated local test database. Before the commands below, run
+`./scripts/dev/provision-identity.ps1` and dot-source `./scripts/dev/identity-environment.ps1`.
+The storefront registration preview is at http://localhost:4200/register. Start Identity
+with `./scripts/dev/start-identity.ps1` in another terminal, following its migration setup.
+
 ```powershell
 dotnet restore Commerce.slnx --locked-mode
 dotnet format Commerce.slnx --verify-no-changes --no-restore
@@ -41,6 +46,7 @@ dotnet test Commerce.slnx --no-restore -c Release
 dotnet list Commerce.slnx package --vulnerable --include-transitive
 ./scripts/test/smoke.ps1
 py scripts/test/infrastructure-smoke.py
+py scripts/test/identity-smoke.py
 cd src/frontend
 npm ci
 npm run format:check
