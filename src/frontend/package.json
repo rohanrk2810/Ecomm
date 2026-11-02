@@ -1,0 +1,38 @@
+﻿{
+  "name": "commerce-frontend",
+  "version": "0.0.0",
+  "scripts": {
+    "start": "npm run start:storefront",
+    "start:storefront": "ng serve storefront",
+    "start:operations": "ng serve operations-portal",
+    "build": "ng build storefront && ng build operations-portal",
+    "test": "ng test storefront --watch=false && ng test operations-portal --watch=false",
+    "format": "prettier --write \"apps/**/*.{ts,html,css,json}\" \"libs/**/*.{ts,css}\" \"*.json\"",
+    "format:check": "prettier --check \"apps/**/*.{ts,html,css,json}\" \"libs/**/*.{ts,css}\" \"*.json\""
+  },
+  "private": true,
+  "packageManager": "npm@10.9.2",
+  "dependencies": {
+    "@angular/common": "22.2.4",
+    "@angular/compiler": "22.2.4",
+    "@angular/core": "22.2.4",
+    "@angular/forms": "22.2.4",
+    "@angular/platform-browser": "22.2.4",
+    "@angular/router": "22.2.4",
+    "rxjs": "7.8.0",
+    "tslib": "2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "22.2.5",
+    "@angular/cli": "22.2.5",
+    "@angular/compiler-cli": "22.2.4",
+    "prettier": "3.8.1",
+    "typescript": "6.0.2",
+    "vitest": "5.0.5",
+    "jsdom": "28.1.0"
+  },
+  "engines": {
+    "node": ">=22.22.3 <23",
+    "npm": "10.9.2"
+  }
+}

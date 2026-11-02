@@ -1,0 +1,10 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Generated dependency/tool/build directories; application source is always scanned"
+paths = [
+  '''(^|/)\.tools/''',
+  '''(^|/)node_modules/''',
+  '''(^|/)(bin|obj|dist|\.angular)/'''
+]

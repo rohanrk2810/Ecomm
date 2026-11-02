@@ -1,0 +1,72 @@
+name: Foundation CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  gateway:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+      - run: dotnet restore Commerce.slnx --locked-mode
+      - run: dotnet format Commerce.slnx --verify-no-changes --no-restore
+      - run: dotnet build Commerce.slnx --no-restore -c Release
+      - run: dotnet test Commerce.slnx --no-restore -c Release
+      - name: Audit dependencies
+        shell: pwsh
+        run: ./scripts/test/audit-backend.ps1
+      - name: Smoke gateway process
+        shell: bash
+        run: |
+          dotnet src/gateway/Commerce.Gateway/bin/Release/net10.0/Commerce.Gateway.dll --urls http://localhost:5080 > /tmp/gateway.log 2>&1 &
+          gateway_pid=$!
+          trap 'kill "$gateway_pid"' EXIT
+          for i in {1..30}; do
+            if curl --fail --silent http://localhost:5080/health/ready; then break; fi
+            sleep 1
+          done
+          pwsh -File scripts/test/smoke.ps1
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.3
+          cache: npm
+          cache-dependency-path: src/frontend/package-lock.json
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run build
+      - run: npm test
+      - run: npm audit --audit-level=high
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan working tree for secrets
+        run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.28.0 dir /repo --redact --no-banner
+  local-infrastructure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Start local dependencies with generated credentials
+        shell: pwsh
+        run: ./scripts/dev/bootstrap.ps1 -DependenciesOnly
+      - name: Exercise actual dependency operations
+        run: python scripts/test/infrastructure-smoke.py
+      - name: Stop local dependencies
+        if: always()
+        run: docker compose --env-file .env -f deploy/docker-compose.local.yml down

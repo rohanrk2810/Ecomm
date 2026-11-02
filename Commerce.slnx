@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/gateway/">
+    <Project Path="src/gateway/Commerce.Gateway.Tests/Commerce.Gateway.Tests.csproj" />
+    <Project Path="src/gateway/Commerce.Gateway/Commerce.Gateway.csproj" />
+  </Folder>
+</Solution>

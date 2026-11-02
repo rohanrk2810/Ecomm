@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Storefront",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:4200/"
+    },
+    {
+      "name": "Operations",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:4201/"
+    }
+  ]
+}
