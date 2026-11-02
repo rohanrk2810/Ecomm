@@ -206,3 +206,17 @@ example.invalid account. Actual OIDC login passed and staff access remained 403 
 The account was deliberately left unenrolled so its owner can add an authenticator privately.
 Credentials/configuration are in ignored .tools files; no password or factor was printed.
 No new package or migration was introduced by demo provisioning. See docs/demo-staff.md.
+
+## Operations access and audited role changes
+
+- Operations access page: 28 frontend tests passed (23 storefront, 5 operations), both
+  production builds passed; revoked/unavailable access clears previously displayed grants.
+- Role changes: 46 backend tests passed (36 Identity, 10 gateway). Coverage includes exact
+  branch authority, bounded delegation, unenrolled targets, concurrent duplicate grants,
+  repeated revocation, live permission removal, audit/outbox counts and snapshot versions.
+- Four actual synthetic StaffAccessChanged events passed the Draft 2020-12 JSON schema.
+- Locked Docker builds, explicit migration and full SMTP/OIDC/MFA smoke passed. Unsafe
+  staff writes without CSRF returned 400; a valid-MFA customer with CSRF still received 403.
+- No real employee role was changed. Staff editing forms and role-definition administration
+  are not represented as complete. Repository commits use the owner's requested primary
+  email and local SSH signatures; GitHub signing-key registration remains a separate check.

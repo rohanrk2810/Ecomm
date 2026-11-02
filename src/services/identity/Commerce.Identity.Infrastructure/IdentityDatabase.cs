@@ -18,6 +18,7 @@ public sealed class IdentityDatabase(DbContextOptions<IdentityDatabase> options)
     : IdentityDbContext<Account, IdentityRole<Guid>, Guid>(options)
 {
     public DbSet<MfaEnrollmentChallenge> MfaEnrollmentChallenges => Set<MfaEnrollmentChallenge>();
+    public DbSet<StaffGrantAudit> StaffGrantAudits => Set<StaffGrantAudit>();
     public DbSet<StaffMembership> StaffMemberships => Set<StaffMembership>();
     public DbSet<StaffPermission> StaffPermissions => Set<StaffPermission>();
     public DbSet<StaffRolePermission> StaffRolePermissions => Set<StaffRolePermission>();
@@ -43,7 +44,8 @@ public sealed class IdentityDatabase(DbContextOptions<IdentityDatabase> options)
         builder.Entity<PasswordChallenge>(entity => { entity.HasKey(x => x.UserId); entity.Property(x => x.TokenHash).HasMaxLength(64); entity.HasOne<Account>().WithOne().HasForeignKey<PasswordChallenge>(x => x.UserId).OnDelete(DeleteBehavior.Cascade); });
         builder.Entity<MfaCodeUse>(entity => { entity.HasKey(x => new { x.UserId, x.Digest }); entity.Property(x => x.Digest).HasMaxLength(64); entity.HasOne<Account>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade); });
         builder.Entity<MfaEnrollmentChallenge>(entity => { entity.HasKey(x => x.UserId); entity.HasOne<Account>().WithOne().HasForeignKey<MfaEnrollmentChallenge>(x => x.UserId).OnDelete(DeleteBehavior.Cascade); });
-        builder.Entity<StaffMembership>(entity => { entity.HasKey(x => x.UserId); entity.HasOne<Account>().WithOne().HasForeignKey<StaffMembership>(x => x.UserId).OnDelete(DeleteBehavior.Cascade); });
+        builder.Entity<StaffGrantAudit>(entity => { entity.HasKey(x => x.Id); entity.Property(x => x.CorrelationId).HasMaxLength(128); });
+        builder.Entity<StaffMembership>(entity => { entity.Property(x => x.Version).IsConcurrencyToken(); entity.HasKey(x => x.UserId); entity.HasOne<Account>().WithOne().HasForeignKey<StaffMembership>(x => x.UserId).OnDelete(DeleteBehavior.Cascade); });
         builder.Entity<StaffPermission>(entity => { entity.HasKey(x => x.Code); entity.Property(x => x.Code).HasMaxLength(128); });
         builder.Entity<StaffRolePermission>(entity => { entity.HasKey(x => new { x.RoleId, x.PermissionCode }); entity.HasOne<IdentityRole<Guid>>().WithMany().HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.Cascade); entity.HasOne<StaffPermission>().WithMany().HasForeignKey(x => x.PermissionCode).OnDelete(DeleteBehavior.Restrict); });
         builder.Entity<StaffBranchRole>(entity => { entity.HasKey(x => new { x.UserId, x.BranchId, x.RoleId }); entity.HasOne<StaffMembership>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade); entity.HasOne<IdentityRole<Guid>>().WithMany().HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.Cascade); });

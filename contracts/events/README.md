@@ -6,3 +6,8 @@ Envelope requires eventId, eventType/version, occurredAtUtc, producer, aggregate
 correlationId, causationId and W3C trace context. Use past-tense facts and avoid unnecessary PII.
 Publish with transactional outbox; consume with durable inbox and bounded retry/DLQ.
 Assume duplicate/out-of-order delivery. Never promise end-to-end exactly-once.
+
+StaffAccessChanged v1 carries the complete current effective branch-grant snapshot.
+Consumers must deduplicate event IDs and apply newer membership aggregate versions;
+repeated unchanged commands emit no new event. Permission keys and IDs contain no
+email, password, authenticator seed or bearer token.

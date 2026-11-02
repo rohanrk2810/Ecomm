@@ -1692,3 +1692,8 @@ The local Identity staff-access read API now owns membership, permission registr
 explicit branch-role links, independently validates bearer tokens and live MFA/session
 state, and exposes only the caller's current grants. No production staff grants or role
 list are seeded. See docs/staff-access-plan.md for scope and remaining administration.
+
+Local staff role PUT/DELETE commands require current MFA and the actor's branch-specific
+grant permission. Delegation/revocation is bounded by the actor's current rights. Changes
+commit versioned effective-grant snapshots, audit and outbox atomically; BFF writes require
+CSRF. See docs/staff-role-changes.md. Role-definition and invitation UI remain later work.

@@ -36,7 +36,7 @@ public static class BffConfiguration
           X509CertificateLoader.LoadPkcs12FromFile(configured.KeyCertificatePath, configured.KeyCertificatePassword));
         builder.Services.AddAntiforgery(options =>
         {
-            options.Cookie.Name = "commerce.bff.csrf"; options.FormFieldName = "__RequestVerificationToken";
+            options.HeaderName = "X-CSRF-TOKEN"; options.Cookie.Name = "commerce.bff.csrf"; options.FormFieldName = "__RequestVerificationToken";
             options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
         });
         builder.Services.AddAuthentication(CookieScheme).AddCookie(CookieScheme).AddOpenIdConnect("oidc", _ => { });

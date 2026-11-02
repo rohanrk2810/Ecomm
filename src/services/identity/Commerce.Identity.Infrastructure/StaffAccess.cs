@@ -6,6 +6,7 @@ public sealed class StaffMembership
 {
     public Guid UserId { get; set; }
     public bool IsActive { get; set; }
+    public long Version { get; set; }
 }
 public sealed class StaffPermission
 {

@@ -26,12 +26,12 @@ jar = http.cookiejar.CookieJar()
 browser = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar), NoRedirect())
 
 
-def request(url, body=None, as_json=False, extra_headers=None):
+def request(url, body=None, as_json=False, extra_headers=None, method=None):
     data = None if body is None else (json.dumps(body) if as_json else urllib.parse.urlencode(body)).encode()
     headers = {'Content-Type': 'application/json' if as_json else 'application/x-www-form-urlencoded'}
     headers.update(extra_headers or {})
     try:
-        response = browser.open(urllib.request.Request(url, data=data, headers=headers), timeout=20)
+        response = browser.open(urllib.request.Request(url, data=data, headers=headers, method=method), timeout=20)
     except urllib.error.HTTPError as error:
         response = error
     return response.code, response.headers, response.read().decode()
@@ -121,3 +121,9 @@ print('PASS enrolled account rejects password alone and completes OIDC with a re
 # injected bearer header with its own validated server-side access token.
 assert request(APP + '/api/v1/identity/staff-access', extra_headers={'Authorization':'Bearer forged'})[0] == 403
 print('PASS verified customer has no staff access and caller cannot replace the BFF bearer token',flush=True)
+
+change_path=APP+'/api/v1/identity/staff/'+str(uuid.uuid4())+'/branches/'+str(uuid.uuid4())+'/roles/'+str(uuid.uuid4())
+assert request(change_path,{},True,method='PUT')[0]==400
+csrf=json.loads(request(APP+'/bff/antiforgery')[2])['requestToken']
+assert request(change_path,{},True,{'X-CSRF-TOKEN':csrf},method='PUT')[0]==403
+print('PASS role writes require BFF CSRF and a verified customer cannot grant staff rights',flush=True)

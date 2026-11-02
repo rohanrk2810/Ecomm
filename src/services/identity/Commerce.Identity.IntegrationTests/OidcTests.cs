@@ -245,6 +245,49 @@ public sealed class OidcTests(IdentityFixture factory) : IClassFixture<IdentityF
         Assert.Equal(HttpStatusCode.Forbidden, (await staff.GetAsync("/api/v1/identity/staff-access", Token)).StatusCode);
     }
     [Fact]
+    public async Task BranchRoleChangesEnforceDelegationAndAreAuditedIdempotent()
+    {
+        using var admin = Browser(); var actor = await CodeAsync(admin, true);
+        using var exchanged = await ExchangeAsync(admin, actor.Code, actor.Verifier);
+        using var tokens = JsonDocument.Parse(await exchanged.Content.ReadAsStringAsync(Token));
+        admin.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokens.RootElement.GetProperty("access_token").GetString());
+        using var targetBrowser = Browser(); var target = await CodeAsync(targetBrowser, true);
+        var branch = Guid.NewGuid(); var adminRole = Guid.NewGuid(); var readRole = Guid.NewGuid(); var highRole = Guid.NewGuid();
+        var readPermission = "fixture.read." + Guid.NewGuid().ToString("N"); var highPermission = "fixture.high." + Guid.NewGuid().ToString("N");
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<IdentityDatabase>();
+            foreach (var id in new[] { adminRole, readRole, highRole }) db.Roles.Add(new IdentityRole<Guid> { Id = id, Name = "fixture-" + id });
+            if (!await db.StaffPermissions.AnyAsync(x => x.Code == StaffGrantWriter.Permission, Token)) db.StaffPermissions.Add(new StaffPermission { Code = StaffGrantWriter.Permission });
+            db.StaffPermissions.AddRange(new StaffPermission { Code = readPermission }, new StaffPermission { Code = highPermission });
+            db.StaffRolePermissions.AddRange(new StaffRolePermission { RoleId = adminRole, PermissionCode = StaffGrantWriter.Permission }, new StaffRolePermission { RoleId = adminRole, PermissionCode = readPermission }, new StaffRolePermission { RoleId = readRole, PermissionCode = readPermission }, new StaffRolePermission { RoleId = highRole, PermissionCode = highPermission });
+            db.StaffMemberships.Add(new StaffMembership { UserId = actor.UserId, IsActive = true }); db.StaffBranchRoles.Add(new StaffBranchRole { UserId = actor.UserId, BranchId = branch, RoleId = adminRole }); await db.SaveChangesAsync(Token);
+        }
+        string PathFor(Guid b, Guid r) => $"/api/v1/identity/staff/{target.UserId}/branches/{b}/roles/{r}";
+        var notEnrolled = await UserAsync();
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsync($"/api/v1/identity/staff/{notEnrolled.User.Id}/branches/{branch}/roles/{readRole}", null, Token)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await admin.PutAsync(PathFor(Guid.NewGuid(), readRole), null, Token)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await admin.PutAsync(PathFor(branch, highRole), null, Token)).StatusCode);
+        var responses = await Task.WhenAll(admin.PutAsync(PathFor(branch, readRole), null, Token), admin.PutAsync(PathFor(branch, readRole), null, Token));
+        Assert.All(responses, r => Assert.Equal(HttpStatusCode.NoContent, r.StatusCode)); foreach (var response in responses) response.Dispose();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<IdentityDatabase>(); Assert.Equal(1, await db.StaffGrantAudits.CountAsync(x => x.TargetUserId == target.UserId, Token));
+            Assert.Equal(1, await db.StaffMemberships.Where(x => x.UserId == target.UserId).Select(x => x.Version).SingleAsync(Token));
+        }
+        Assert.Equal(HttpStatusCode.NoContent, (await admin.DeleteAsync(PathFor(branch, readRole), Token)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await admin.DeleteAsync(PathFor(branch, readRole), Token)).StatusCode);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<IdentityDatabase>(); var audits = await db.StaffGrantAudits.Where(x => x.TargetUserId == target.UserId).ToListAsync(Token); Assert.Equal(2, audits.Count);
+            var ids = audits.Select(x => x.Id).ToArray(); var events = await db.Outbox.Where(x => ids.Contains(x.Id)).ToListAsync(Token); Assert.Equal(2, events.Count);
+            using var latest = JsonDocument.Parse(events.Single(x => x.Id == audits.Single(a => !a.Granted).Id).Payload); Assert.Equal(2, latest.RootElement.GetProperty("aggregateVersion").GetInt64()); Assert.Empty(latest.RootElement.GetProperty("data").GetProperty("access").GetProperty("branches").EnumerateArray());
+            Assert.False(await db.StaffMemberships.Where(x => x.UserId == target.UserId).Select(x => x.IsActive).SingleAsync(Token));
+            await db.StaffRolePermissions.Where(x => x.RoleId == adminRole && x.PermissionCode == StaffGrantWriter.Permission).ExecuteDeleteAsync(Token);
+        }
+        Assert.Equal(HttpStatusCode.Forbidden, (await admin.PutAsync(PathFor(branch, readRole), null, Token)).StatusCode);
+    }
+    [Fact]
     public async Task MissingPkceChallengeIsRejected()
     {
         using var client = Browser();

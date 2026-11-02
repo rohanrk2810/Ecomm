@@ -277,6 +277,40 @@ namespace Commerce.Identity.Infrastructure.Persistence.Migrations
                     b.ToTable("StaffBranchRoles", "identity");
                 });
 
+            modelBuilder.Entity("Commerce.Identity.Infrastructure.StaffGrantAudit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CorrelationId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<bool>("Granted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("OccurredAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TargetUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("StaffGrantAudits", "identity");
+                });
+
             modelBuilder.Entity("Commerce.Identity.Infrastructure.StaffMembership", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -284,6 +318,10 @@ namespace Commerce.Identity.Infrastructure.Persistence.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
 
                     b.HasKey("UserId");
 

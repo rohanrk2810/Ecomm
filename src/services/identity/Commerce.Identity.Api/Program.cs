@@ -85,6 +85,7 @@ builder.Services.AddScoped<VerificationIssuer>();
 builder.Services.AddScoped<PasswordRecovery>();
 builder.Services.AddScoped<MfaGate>();
 builder.Services.AddScoped<StaffAccessReader>();
+builder.Services.AddScoped<StaffGrantWriter>();
 builder.Services.AddScoped<DemoStaffSeeder>();
 builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, CurrentStaffHandler>();
 builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationMiddlewareResultHandler, ApiAuthorizationResults>();
@@ -211,5 +212,21 @@ app.MapPost("/api/v1/identity/password-resets", async (PasswordReset request, Pa
     .RequireRateLimiting("registration");
 app.MapGet("/api/v1/identity/staff-access", async (HttpContext context, StaffAccessReader reader, CancellationToken ct) =>
     Results.Ok(await reader.ReadAsync(Guid.Parse(context.User.FindFirst("sub")!.Value), ct))).RequireAuthorization("CurrentStaff").WithName("GetCurrentStaffAccess").Produces<StaffAccessResponse>().ProducesProblem(401).ProducesProblem(403);
+foreach (var method in new[] { "PUT", "DELETE" })
+{
+    var grant = method == "PUT";
+    app.MapMethods("/api/v1/identity/staff/{target:guid}/branches/{branch:guid}/roles/{role:guid}", [method],
+        async (Guid target, Guid branch, Guid role, HttpContext context, StaffGrantWriter writer, CancellationToken ct) =>
+        {
+            var result = await writer.ChangeAsync(Guid.Parse(context.User.FindFirst("sub")!.Value), context.User.FindFirst("sid")?.Value,
+                target, branch, role, grant, context.TraceIdentifier, ct);
+            return result switch
+            {
+                StaffGrantOutcome.Changed or StaffGrantOutcome.Unchanged => Results.NoContent(),
+                StaffGrantOutcome.InvalidTarget => Results.Problem(statusCode: 400, title: "The target must be a verified, MFA-enrolled account."),
+                _ => Results.Problem(statusCode: 403, title: "This role change is not permitted in this branch.")
+            };
+        }).RequireAuthorization("CurrentStaff").Produces(204).ProducesProblem(400).ProducesProblem(401).ProducesProblem(403);
+}
 app.Run();
 public partial class Program;
