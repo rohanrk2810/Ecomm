@@ -44,7 +44,7 @@ public sealed class OutboxPublisher(IServiceScopeFactory scopes, IOptions<Messag
                 if (rows.Count > 0)
                 {
                     var message = rows[0];
-                    var envelope = JsonSerializer.Deserialize<EventEnvelope>(message.Payload,
+                    var envelope = JsonSerializer.Deserialize<EventEnvelope<JsonElement>>(message.Payload,
                         new JsonSerializerOptions(JsonSerializerDefaults.Web))
                         ?? throw new InvalidOperationException("Invalid outbox envelope.");
                     message.Attempts++;

@@ -18,11 +18,25 @@ public sealed class IdentityDatabase(DbContextOptions<IdentityDatabase> options)
     : IdentityDbContext<Account, IdentityRole<Guid>, Guid>(options)
 {
     public DbSet<OutboxMessage> Outbox => Set<OutboxMessage>();
+    public DbSet<EmailChallenge> EmailChallenges => Set<EmailChallenge>();
+    public DbSet<VerificationEmail> VerificationEmails => Set<VerificationEmail>();
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
         builder.HasDefaultSchema("identity");
         builder.Entity<Account>().HasIndex(x => x.NormalizedEmail).IsUnique();
+        builder.Entity<EmailChallenge>(entity =>
+        {
+            entity.HasKey(x => x.UserId);
+            entity.Property(x => x.TokenHash).HasMaxLength(64).IsFixedLength();
+            entity.HasOne<Account>().WithOne().HasForeignKey<EmailChallenge>(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+        builder.Entity<VerificationEmail>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasOne<Account>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => x.NextAttemptAtUtc).HasFilter("\"DeliveredAtUtc\" IS NULL AND \"CancelledAtUtc\" IS NULL AND \"AbandonedAtUtc\" IS NULL");
+        });
         builder.Entity<OutboxMessage>(entity =>
         {
             entity.ToTable("Outbox");

@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <PackageReference Include="MailKit" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="../Commerce.Identity.Contracts/Commerce.Identity.Contracts.csproj" />
     <ProjectReference Include="../Commerce.Identity.Application/Commerce.Identity.Application.csproj" />

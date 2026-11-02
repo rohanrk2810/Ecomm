@@ -79,6 +79,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Restore failed' }
           dotnet test src/services/identity/Commerce.Identity.IntegrationTests -c Release --no-restore
           if ($LASTEXITCODE -ne 0) { throw 'Identity tests failed' }
+      - name: Exercise SMTP verification and persistent keys in containers
+        run: |
+          docker compose --env-file .env -f deploy/docker-compose.local.yml --profile identity --profile app build identity gateway
+          docker compose --env-file .env -f deploy/docker-compose.local.yml --profile identity run --rm --no-deps identity --migrate
+          docker compose --env-file .env -f deploy/docker-compose.local.yml --profile identity --profile app up -d identity gateway --no-build
+          python scripts/test/verification-smoke.py
       - name: Stop local dependencies
         if: always()
-        run: docker compose --env-file .env -f deploy/docker-compose.local.yml down
+        run: docker compose --env-file .env -f deploy/docker-compose.local.yml --profile identity --profile app down

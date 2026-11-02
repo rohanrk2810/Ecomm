@@ -27,6 +27,8 @@ public sealed class IdentityFixture : WebApplicationFactory<Program>, IAsyncLife
         {
             ["ConnectionStrings:Identity"] = connection,
             ["Messaging:PublisherEnabled"] = "false",
+            ["VerificationDelivery:Enabled"] = "false",
+            ["Verification:KeyDirectory"] = Path.Combine(Path.GetTempPath(), "commerce-identity-tests-" + Guid.NewGuid().ToString("N")),
             ["Registration:RequestsPerMinute"] = "1000"
         }));
     }

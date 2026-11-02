@@ -18,6 +18,9 @@ ASP.NET Core Identity for unconfirmed account registration and password hashing.
 no token/session. OpenIddict authorization-code/PKCE, BFF, email confirmation/reset, staff
 MFA and production provider approval remain subsequent work.
 
+Email confirmation/resend is now implemented under ADR-0016. It still issues no session;
+OIDC/BFF login, recovery, staff MFA and production provider approval remain pending.
+
 ## Alternatives
 Evaluate client-approved managed offerings and self-hosting against cost, security and operating capacity.
 

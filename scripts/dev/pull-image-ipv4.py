@@ -50,7 +50,7 @@ def import_image(image, cache_root):
     if '@' in image or ':' not in image.rsplit('/', 1)[-1]:
         raise ValueError('Supply an explicit image tag')
     name, tag = image.rsplit(':', 1)
-    allowed = {'postgres', 'redis', 'apache/kafka', 'otel/opentelemetry-collector-contrib',
+    allowed = {'postgres', 'redis', 'apache/kafka', 'axllent/mailpit', 'otel/opentelemetry-collector-contrib',
                'mcr.microsoft.com/azure-storage/azurite', 'mcr.microsoft.com/dotnet/sdk',
                'mcr.microsoft.com/dotnet/aspnet'}
     if name not in allowed or not re.fullmatch(r'[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}', tag) or tag == 'latest':
@@ -58,7 +58,7 @@ def import_image(image, cache_root):
     if name.startswith('mcr.microsoft.com/'):
         registry, repository = name.split('/', 1)
         token = None
-    elif name.split('/')[0] in ('postgres', 'redis', 'apache', 'otel'):
+    elif name.split('/')[0] in ('postgres', 'redis', 'apache', 'otel', 'axllent'):
         registry = 'registry-1.docker.io'
         repository = name if '/' in name else f'library/{name}'
         token = 'fetch'

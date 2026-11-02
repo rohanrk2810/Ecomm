@@ -3,6 +3,39 @@ info:
   title: Identity registration
   version: 1.0.0
 paths:
+  /api/v1/identity/email-verifications:
+    post:
+      operationId: ConfirmCustomerEmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [userId, token]
+              properties:
+                userId: { type: string, format: uuid }
+                token: { type: string, maxLength: 4096, writeOnly: true }
+      responses:
+        '200': { description: Email confirmed; no session or access token issued }
+        '400': { description: Missing, expired, consumed or invalid verification link }
+        '429': { description: Account action quota exceeded }
+  /api/v1/identity/email-verification-requests:
+    post:
+      operationId: RequestCustomerEmailVerification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                email: { type: string, format: email, maxLength: 254 }
+      responses:
+        '202': { description: Generic pending response; does not prove account existence or email delivery }
+        '429': { description: Account action quota exceeded }
   /api/v1/identity/registrations:
     post:
       operationId: RegisterCustomer

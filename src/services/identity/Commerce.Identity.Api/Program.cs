@@ -1,8 +1,10 @@
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Commerce.Identity.Application;
 using Commerce.Identity.Contracts;
 using Commerce.Identity.Infrastructure;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Metrics;
@@ -18,6 +20,30 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow);
 builder.Services.Configure<Microsoft.AspNetCore.Routing.RouteHandlerOptions>(options => options.ThrowOnBadRequest = false);
 builder.Services.AddOpenApi();
+builder.Services.AddOptions<VerificationSettings>().BindConfiguration("Verification")
+    .Validate(x => x.LifetimeMinutes is >= 5 and <= 1440 && x.ResendCooldownSeconds is >= 30 and <= 3600, "Invalid verification lifetime or cooldown")
+    .Validate(x => Uri.TryCreate(x.StorefrontBaseUri, UriKind.Absolute, out var uri) &&
+        (uri.Scheme == "https" || (builder.Environment.IsDevelopment() && uri.Scheme == "http" && uri.IsLoopback)) &&
+        string.IsNullOrEmpty(uri.UserInfo) && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment), "Configure an approved storefront origin")
+    .Validate(x => !string.IsNullOrWhiteSpace(x.KeyDirectory) && (builder.Environment.IsDevelopment() || !string.IsNullOrWhiteSpace(x.KeyCertificatePath)), "Persistent protected key configuration required")
+    .ValidateOnStart();
+builder.Services.AddOptions<VerificationDeliverySettings>().BindConfiguration("VerificationDelivery")
+    .Validate(x => !x.Enabled || (!string.IsNullOrWhiteSpace(x.Host) && x.Port is > 0 and <= 65535 && MimeKit.MailboxAddress.TryParse(x.FromAddress, out _)), "Configure verification SMTP delivery")
+    .Validate(x => builder.Environment.IsDevelopment() || x.StartTls, "SMTP TLS is required outside development")
+    .Validate(x => string.IsNullOrEmpty(x.Username) || !string.IsNullOrEmpty(x.Password), "SMTP credentials are incomplete")
+    .Validate(x => x.MaxAttempts is >= 1 and <= 10, "Invalid delivery attempt limit").ValidateOnStart();
+var protection = builder.Services.AddDataProtection().SetApplicationName("Commerce.Identity");
+builder.Services.AddOptions<Microsoft.AspNetCore.DataProtection.KeyManagement.KeyManagementOptions>()
+    .Configure<Microsoft.Extensions.Options.IOptions<VerificationSettings>, ILoggerFactory>((options, configured, logs) =>
+    {
+        options.XmlRepository = new Microsoft.AspNetCore.DataProtection.Repositories.FileSystemXmlRepository(
+            new DirectoryInfo(configured.Value.KeyDirectory), logs);
+    });
+var verificationConfiguration = builder.Configuration.GetSection("Verification").Get<VerificationSettings>() ?? new();
+if (!string.IsNullOrWhiteSpace(verificationConfiguration.KeyCertificatePath))
+    protection.ProtectKeysWithCertificate(X509CertificateLoader.LoadPkcs12FromFile(verificationConfiguration.KeyCertificatePath, verificationConfiguration.KeyCertificatePassword));
+builder.Services.AddOptions<DataProtectionTokenProviderOptions>().Configure<Microsoft.Extensions.Options.IOptions<VerificationSettings>>(
+    (options, configured) => options.TokenLifespan = TimeSpan.FromMinutes(configured.Value.LifetimeMinutes));
 builder.Services.AddOptions<RegistrationSettings>().BindConfiguration("Registration")
     .Validate(x => x.MinimumPasswordLength >= 12 && x.MaximumPasswordLength <= 128 &&
         x.MaximumPasswordLength >= x.MinimumPasswordLength && x.RequestsPerMinute > 0, "Invalid registration settings")
@@ -29,7 +55,7 @@ builder.Services.AddOptions<MessagingSettings>().BindConfiguration("Messaging")
 builder.Services.AddDbContext<IdentityDatabase>((services, options) => options.UseNpgsql(
     services.GetRequiredService<IConfiguration>().GetConnectionString("Identity")
         ?? throw new InvalidOperationException("Inject the Identity service database connection.")));
-builder.Services.AddIdentityCore<Account>().AddEntityFrameworkStores<IdentityDatabase>();
+builder.Services.AddIdentityCore<Account>().AddEntityFrameworkStores<IdentityDatabase>().AddDefaultTokenProviders();
 builder.Services.AddOptions<IdentityOptions>().Configure<Microsoft.Extensions.Options.IOptions<RegistrationSettings>>((options, registration) =>
 {
     var security = registration.Value;
@@ -45,6 +71,10 @@ builder.Services.AddOptions<IdentityOptions>().Configure<Microsoft.Extensions.Op
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IAccountRegistrationStore, AccountRegistrationStore>();
 builder.Services.AddScoped<RegistrationService>();
+builder.Services.AddScoped<VerificationIssuer>();
+builder.Services.AddScoped<IEmailVerificationStore, EmailVerificationStore>();
+builder.Services.AddScoped<VerificationWorkflow>();
+builder.Services.AddHostedService<VerificationEmailDispatcher>();
 builder.Services.AddHostedService<OutboxPublisher>();
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 8192);
 builder.Services.AddRateLimiter(options =>
@@ -115,6 +145,18 @@ app.MapPost("/api/v1/identity/registrations", async (RegistrationRequest request
 }).RequireRateLimiting("registration").WithName("RegisterCustomer")
   .Produces<RegistrationResponse>(202).ProducesValidationProblem();
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
+app.MapPost("/api/v1/identity/email-verifications", async (ConfirmEmailRequest request, VerificationWorkflow workflow,
+    HttpContext context, CancellationToken cancellationToken) =>
+    await workflow.ConfirmAsync(request, context.TraceIdentifier, cancellationToken)
+        ? Results.Ok(new RegistrationResponse("verified"))
+        : Results.Problem(statusCode: 400, title: "This verification link is invalid or has expired."))
+    .RequireRateLimiting("registration").WithName("ConfirmCustomerEmail");
+app.MapPost("/api/v1/identity/email-verification-requests", async (ResendEmailRequest request, VerificationWorkflow workflow,
+    CancellationToken cancellationToken) =>
+    {
+        await workflow.ResendAsync(request, cancellationToken);
+        return Results.Json(new RegistrationResponse("pending_verification"), statusCode: 202);
+    }).RequireRateLimiting("registration").WithName("RequestCustomerEmailVerification");
 app.MapFallback(() => Results.Problem(statusCode: 401, title: "Authentication is not available for this operation."));
 app.Run();
 public partial class Program;

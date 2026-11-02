@@ -1,9 +1,10 @@
 # Identity registration slice
 
-Scope: create an unconfirmed customer account and durable UserRegistered event.
-Email/password was selected by the user. Mobile OTP is deferred. Sign-in, OIDC/BFF,
-email delivery/confirmation, reset, MFA, sessions, role assignment and customer profiles
-are subsequent slices, not implemented by this endpoint. No token is issued here.
+Scope: create an unconfirmed customer account, protected verification email and durable
+UserRegistered event. Email/password was selected by the user. Email confirmation/resend
+is now implemented in the next slice; see email-verification.md. Mobile OTP, sign-in,
+OIDC/BFF, reset, MFA, sessions, role assignment and customer profiles remain subsequent work.
+Registration issues no session or access token.
 
 Identity owns its PostgreSQL database, role and migration history. Microsoft ASP.NET
 Core Identity hashes passwords. The application layer validates email/password settings;
@@ -15,8 +16,8 @@ constant-time: response shape alone is not a complete enumeration defense.
 
 Unknown JSON fields (roles, confirmation flags, IDs) are rejected. Public registration
 cannot grant staff permissions or confirm an email. Account remains unconfirmed.
-Only POST /api/v1/identity/registrations and GET /api/v1/identity/registration-policy
-are intended as public business endpoints. All other Identity API routes fail closed.
+Registration/policy and the documented POST email confirmation/resend routes are public.
+Other Identity API routes fail closed.
 GET readiness verifies connectivity and migration state. Migrations run via an explicit
 --migrate command, not on normal replica startup. No service queries Identity SQL directly.
 
@@ -54,7 +55,7 @@ client policy. The current direct-IP limiter sees the gateway IP behind the prox
 quota is shared behind that gateway. Distributed edge/client limits need design before launch.
 No passwords, request bodies or SQL parameter values may be logged. Sessions/CSRF are not
 applicable to this unauthenticated, non-cookie endpoint; they are mandatory with BFF sign-in.
-Registration remains a local preview pending activation/email delivery and security review.
+Registration and verification remain local previews pending production sender/key setup and security review.
 
 Container setup: build profiles identity/app, run the Identity image once with --migrate,
 then start identity and gateway. `py scripts/test/identity-smoke.py` verifies duplicate

@@ -27,3 +27,10 @@ runtime password policy, generic duplicate responses, quota, transactional PII-f
 and acknowledged Kafka publishing. Verify rollback, concurrency, extra-field rejection and
 safe failure states. Separately commit the lazy Angular registration form with typed client,
 server policy hints and pending/error states. Login and activation remain subsequent slices.
+
+## Phase 2 slice 2 — email verification
+Use maintained Identity tokens, persistent protected keys, expiring single-use challenges,
+database resend cooldown and protected transactional mail queue. Capture SMTP locally with
+Mailpit and publish a PII-free verification event. Add explicit-action verification/resend
+screens. Verify expiry, replay, cross-account use, concurrency, SMTP and restart persistence.
+Commit backend and frontend as independently reviewed slices using the repository owner's identity.

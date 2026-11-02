@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Commerce.Identity.Infrastructure;
 
 public sealed class AccountRegistrationStore(IdentityDatabase database, UserManager<Account> users,
-    TimeProvider clock) : IAccountRegistrationStore
+    VerificationIssuer verification, TimeProvider clock) : IAccountRegistrationStore
 {
     public async Task RegisterAsync(string email, string password, string correlationId, CancellationToken cancellationToken)
     {
@@ -27,13 +27,14 @@ public sealed class AccountRegistrationStore(IdentityDatabase database, UserMana
         var account = new Account { Id = accountId, UserName = accountId.ToString("N"), Email = email };
         var result = await users.CreateAsync(account, password);
         if (!result.Succeeded) throw new InvalidOperationException("Account registration could not be persisted.");
+        await verification.IssueAsync(account, cancellationToken);
         var eventId = Guid.NewGuid();
         var now = clock.GetUtcNow();
         database.Outbox.Add(new OutboxMessage
         {
             Id = eventId,
             CreatedAtUtc = now,
-            Payload = JsonSerializer.Serialize(new EventEnvelope(eventId, "UserRegistered", 1, now,
+            Payload = JsonSerializer.Serialize(new EventEnvelope<UserRegistered>(eventId, "UserRegistered", 1, now,
                 "commerce.identity", account.Id.ToString(), 1, correlationId, correlationId,
                 Activity.Current?.Id, new UserRegistered(account.Id)), new JsonSerializerOptions(JsonSerializerDefaults.Web))
         });

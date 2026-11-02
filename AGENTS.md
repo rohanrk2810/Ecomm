@@ -84,10 +84,10 @@ A task is done only when it compiles, relevant tests pass, migrations are presen
 
 ## Production honesty
 
+Never label a service or platform production-ready solely because it builds or runs locally. Production readiness requires agreed UAT, security verification, load testing, backup/restore evidence, operational runbooks, alerting, deployment rollback and client sign-off.
+
 ## Git workflow
 
 - Commit each completed, verified vertical slice using the repository owner's existing Git identity.
 - Do not add assistant/bot attribution, generated-by text or co-author trailers to commit metadata.
 - Check the staged diff and secret scan before committing. Push only when explicitly requested.
-
-Never label a service or platform production-ready solely because it builds or runs locally. Production readiness requires agreed UAT, security verification, load testing, backup/restore evidence, operational runbooks, alerting, deployment rollback and client sign-off.
