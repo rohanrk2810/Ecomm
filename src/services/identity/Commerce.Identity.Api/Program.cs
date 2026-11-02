@@ -86,6 +86,7 @@ builder.Services.AddScoped<PasswordRecovery>();
 builder.Services.AddScoped<MfaGate>();
 builder.Services.AddScoped<StaffAccessReader>();
 builder.Services.AddScoped<StaffGrantWriter>();
+builder.Services.AddScoped<StaffManagementReader>();
 builder.Services.AddScoped<DemoStaffSeeder>();
 builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, CurrentStaffHandler>();
 builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationMiddlewareResultHandler, ApiAuthorizationResults>();
@@ -228,5 +229,18 @@ foreach (var method in new[] { "PUT", "DELETE" })
             };
         }).RequireAuthorization("CurrentStaff").Produces(204).ProducesProblem(400).ProducesProblem(401).ProducesProblem(403);
 }
+app.MapGet("/api/v1/identity/staff/branches/{branch:guid}/roles", async (Guid branch, HttpContext context, StaffManagementReader reader, CancellationToken ct) =>
+{
+    var subject = context.User.FindFirst("sub")!.Value;
+    return await reader.AllowedAsync(subject, context.User.FindFirst("sid")?.Value, branch, ct)
+        ? Results.Ok(await reader.RolesAsync(Guid.Parse(subject), branch, ct)) : Results.Problem(statusCode: 403, title: "Branch management is not available.");
+}).RequireAuthorization("CurrentStaff").WithName("GetDelegatableStaffRoles").Produces<StaffRoleChoice[]>().ProducesProblem(401).ProducesProblem(403);
+app.MapPost("/api/v1/identity/staff/branches/{branch:guid}/resolve-account", async (Guid branch, StaffAccountLookup request, HttpContext context, StaffManagementReader reader, CancellationToken ct) =>
+{
+    var subject = context.User.FindFirst("sub")!.Value;
+    if (!await reader.AllowedAsync(subject, context.User.FindFirst("sid")?.Value, branch, ct)) return Results.Problem(statusCode: 403, title: "Branch management is not available.");
+    var result = await reader.ResolveAsync(Guid.Parse(subject), branch, request.Email, ct);
+    return result is null ? Results.Problem(statusCode: 400, title: "The account is not ready for staff assignment.") : Results.Ok(result);
+}).RequireAuthorization("CurrentStaff").RequireRateLimiting("registration").WithName("ResolveStaffAccount").Produces<StaffAccountChoice>().ProducesProblem(400).ProducesProblem(401).ProducesProblem(403);
 app.Run();
 public partial class Program;

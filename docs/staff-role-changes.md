@@ -24,6 +24,7 @@ No email/password/token is in the event. Existing acknowledged outbox publishing
 The gateway requires VerifiedMfa, strips caller credentials, supplies the server-held token,
 and validates X-CSRF-TOKEN for unsafe staff requests. Obtain it from /bff/antiforgery using
 the same authenticated browser session. Direct service callers use validated bearer tokens;
-provider cookies cannot authorize this API. No grant editing UI or global role-definition
-API is represented as complete. Production approval, invitations and branch lifecycle/
+provider cookies cannot authorize this API. The operations assignment UI and its scoped
+catalog/account lookup are described in [staff-management-ui.md](staff-management-ui.md).
+A global role-definition API is not implemented. Production approval, invitations and branch lifecycle/
 permission definitions remain separate work. Apply AddAuditedStaffRoleChanges explicitly.

@@ -127,3 +127,8 @@ assert request(change_path,{},True,method='PUT')[0]==400
 csrf=json.loads(request(APP+'/bff/antiforgery')[2])['requestToken']
 assert request(change_path,{},True,{'X-CSRF-TOKEN':csrf},method='PUT')[0]==403
 print('PASS role writes require BFF CSRF and a verified customer cannot grant staff rights',flush=True)
+
+management_branch=str(uuid.uuid4())
+assert request(APP+'/api/v1/identity/staff/branches/'+management_branch+'/roles')[0]==403
+assert request(APP+'/api/v1/identity/staff/branches/'+management_branch+'/resolve-account',{'email':'synthetic@example.invalid'},True,{'X-CSRF-TOKEN':csrf})[0]==403
+print('PASS management role catalog and account lookup reject an MFA customer without staff authority',flush=True)

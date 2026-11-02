@@ -1697,3 +1697,8 @@ Local staff role PUT/DELETE commands require current MFA and the actor's branch-
 grant permission. Delegation/revocation is bounded by the actor's current rights. Changes
 commit versioned effective-grant snapshots, audit and outbox atomically; BFF writes require
 CSRF. See docs/staff-role-changes.md. Role-definition and invitation UI remain later work.
+
+Local staff role-management now provides a lazy operations UI, bounded delegatable-role
+catalog and scoped exact-email account resolution. Existing live-MFA, branch delegation,
+CSRF and audited transaction rules remain authoritative. No new role names, real grants
+or branch directory are invented. See docs/staff-management-ui.md.

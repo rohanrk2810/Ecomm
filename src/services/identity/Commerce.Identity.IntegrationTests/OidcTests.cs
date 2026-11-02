@@ -263,6 +263,20 @@ public sealed class OidcTests(IdentityFixture factory) : IClassFixture<IdentityF
             db.StaffRolePermissions.AddRange(new StaffRolePermission { RoleId = adminRole, PermissionCode = StaffGrantWriter.Permission }, new StaffRolePermission { RoleId = adminRole, PermissionCode = readPermission }, new StaffRolePermission { RoleId = readRole, PermissionCode = readPermission }, new StaffRolePermission { RoleId = highRole, PermissionCode = highPermission });
             db.StaffMemberships.Add(new StaffMembership { UserId = actor.UserId, IsActive = true }); db.StaffBranchRoles.Add(new StaffBranchRole { UserId = actor.UserId, BranchId = branch, RoleId = adminRole }); await db.SaveChangesAsync(Token);
         }
+        using (var forbiddenCatalog = await admin.GetAsync($"/api/v1/identity/staff/branches/{Guid.NewGuid()}/roles", Token)) Assert.Equal(HttpStatusCode.Forbidden, forbiddenCatalog.StatusCode);
+        using (var catalog = await admin.GetAsync($"/api/v1/identity/staff/branches/{branch}/roles", Token))
+        {
+            Assert.Equal(HttpStatusCode.OK, catalog.StatusCode); var choices = await catalog.Content.ReadFromJsonAsync<Commerce.Identity.Contracts.StaffRoleChoice[]>(Token);
+            Assert.Contains(choices!, x => x.Id == readRole); Assert.DoesNotContain(choices!, x => x.Id == highRole);
+        }
+        string targetEmail;
+        using (var scope = factory.Services.CreateScope()) targetEmail = (await scope.ServiceProvider.GetRequiredService<IdentityDatabase>().Users.SingleAsync(x => x.Id == target.UserId, Token)).Email!;
+        using (var forbiddenLookup = await admin.PostAsJsonAsync($"/api/v1/identity/staff/branches/{Guid.NewGuid()}/resolve-account", new { email = targetEmail }, Token)) Assert.Equal(HttpStatusCode.Forbidden, forbiddenLookup.StatusCode);
+        using (var unknown = await admin.PostAsJsonAsync($"/api/v1/identity/staff/branches/{branch}/resolve-account", new { email = Guid.NewGuid() + "@example.invalid" }, Token)) Assert.Equal(HttpStatusCode.BadRequest, unknown.StatusCode);
+        using (var lookup = await admin.PostAsJsonAsync($"/api/v1/identity/staff/branches/{branch}/resolve-account", new { email = targetEmail }, Token))
+        {
+            Assert.Equal(HttpStatusCode.OK, lookup.StatusCode); var resolved = await lookup.Content.ReadFromJsonAsync<Commerce.Identity.Contracts.StaffAccountChoice>(Token); Assert.Equal(target.UserId, resolved!.UserId); Assert.Empty(resolved.AssignedRoleIds);
+        }
         string PathFor(Guid b, Guid r) => $"/api/v1/identity/staff/{target.UserId}/branches/{b}/roles/{r}";
         var notEnrolled = await UserAsync();
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsync($"/api/v1/identity/staff/{notEnrolled.User.Id}/branches/{branch}/roles/{readRole}", null, Token)).StatusCode);

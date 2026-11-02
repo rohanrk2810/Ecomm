@@ -42,5 +42,7 @@ live instead of trusting long-lived role claims.
 
 Apply AddStaffBranchGrants explicitly. Two maintained OpenIddict validation integration
 packages at the existing 7.7.2 version are added and pinned. No client/unused data-protection
-validation stack is enabled. Public staff-grant mutation is deliberately unavailable until
-invitation, permissions, branch validation and audit/event workflows exist.
+validation stack is enabled. Subsequent audited grant/revoke APIs and the operations
+assignment UI are documented in [staff-role-changes.md](staff-role-changes.md) and
+[staff-management-ui.md](staff-management-ui.md). Invitations, branch lifecycle and
+client-specific role definitions remain separate work.
